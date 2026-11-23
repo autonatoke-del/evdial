@@ -463,6 +463,15 @@ public class ContactsScreen extends Activity {
             });
         });
     }
+    private static boolean hasSameContactNumber(List<String> numbers,String candidate){
+        if(TextUtils.isEmpty(candidate))return false;
+        String key=PhoneNumberUtils.normalizeNumber(candidate);
+        for(String number:numbers){
+            if(candidate.equals(number))return true;
+            if(!TextUtils.isEmpty(key)&&key.length()>=5&&key.equals(PhoneNumberUtils.normalizeNumber(number)))return true;
+        }
+        return false;
+    }
     private void contacts(List<Entry> result){
         String[] fields={Phone.CONTACT_ID,Phone.LOOKUP_KEY,Phone.DISPLAY_NAME,Phone.NUMBER,
                 Phone.TYPE,Phone.LABEL,Phone.STARRED,Phone.PHOTO_THUMBNAIL_URI,Phone.PHOTO_URI};
@@ -480,7 +489,7 @@ public class ContactsScreen extends Activity {
                     e.contactLookup=c.getString(1);e.card=ContactsContract.Contacts.getLookupUri(id,e.contactLookup);
                     e.photo=uri(c.getString(7));e.largePhoto=uri(c.getString(8));grouped.put(id,e);
                 }
-                if(!e.numbers.contains(number)){
+                if(!hasSameContactNumber(e.numbers,number)){
                     e.numbers.add(number);
                     e.labels.add(Phone.getTypeLabel(getResources(),c.getInt(4),c.getString(5)).toString());
                 }
@@ -783,7 +792,7 @@ public class ContactsScreen extends Activity {
             try(Cursor c=getContentResolver().query(Phone.CONTENT_URI,new String[]{Phone.NUMBER,Phone.TYPE,Phone.LABEL},
                     Phone.CONTACT_ID+"=?",new String[]{String.valueOf(id)},Phone.IS_SUPER_PRIMARY+" DESC")){
                 if(c!=null)while(c.moveToNext()){
-                    String n=c.getString(0);if(TextUtils.isEmpty(n)||person.numbers.contains(n))continue;
+                    String n=c.getString(0);if(TextUtils.isEmpty(n)||hasSameContactNumber(person.numbers,n))continue;
                     person.numbers.add(n);person.labels.add(Phone.getTypeLabel(getResources(),c.getInt(1),c.getString(2)).toString());
                 }
             }
@@ -903,59 +912,53 @@ public class ContactsScreen extends Activity {
         boolean known=person.card!=null;
         Entry target=selected.isCall()?selected:person;
         String number=target.number();
-        LinearLayout top=line();top.setPadding(0,dp(10),0,dp(5));panel.addView(top,-1,-2);
-        TextView identity=text(known?"EVDial  /  КОНТАКТ":"EVDial  /  НОМЕР",13,BLUE);
+        LinearLayout top=line();top.setPadding(0,dp(3),0,dp(3));panel.addView(top,-1,-2);
+        TextView identity=text(known?"КОНТАКТ":"НОМЕР ТЕЛЕФОНА",11,BLUE);
         identity.setLetterSpacing(.08f);top.addView(identity,weight());
         if(known){
-            TextView favorite=chip(person.starred?"★":"☆",29,person.starred?"Убрать из избранного":"Добавить в избранное");
-            favorite.setTextColor(person.starred?MINT:MUTED);top.addView(favorite,dp(48),dp(48));
+            TextView favorite=chip(person.starred?"★":"☆",23,person.starred?"Убрать из избранного":"Добавить в избранное");
+            favorite.setTextColor(person.starred?MINT:MUTED);top.addView(favorite,dp(42),dp(42));
             favorite.setOnClickListener(v->favorite(person));
-            TextView edit=chip("✎",26,"Изменить контакт и фотографию");
-            LinearLayout.LayoutParams ep=new LinearLayout.LayoutParams(dp(48),dp(48));ep.leftMargin=dp(6);top.addView(edit,ep);
+            TextView edit=chip("✎",21,"Изменить контакт и фотографию");
+            LinearLayout.LayoutParams ep=new LinearLayout.LayoutParams(dp(42),dp(42));ep.leftMargin=dp(6);top.addView(edit,ep);
             edit.setOnClickListener(v->editContact(person));
         }
-        ContactAvatar avatar=new ContactAvatar(this,96);
+        ContactAvatar avatar=new ContactAvatar(this,72);
         avatar.bind(person.title,person.largePhoto!=null?person.largePhoto:person.photo);
         avatar.setContentDescription(known?"Изменить фотографию контакта":"Фотография появится после сохранения контакта");
-        LinearLayout.LayoutParams av=new LinearLayout.LayoutParams(dp(96),dp(96));av.gravity=Gravity.CENTER_HORIZONTAL;
-        av.topMargin=dp(8);av.bottomMargin=dp(10);panel.addView(avatar,av);
+        LinearLayout.LayoutParams av=new LinearLayout.LayoutParams(dp(72),dp(72));av.gravity=Gravity.CENTER_HORIZONTAL;
+        av.topMargin=dp(3);av.bottomMargin=dp(6);panel.addView(avatar,av);
         avatar.setOnClickListener(known?v->editContact(person):null);
-        TextView name=text(person.title,28,WHITE);name.setGravity(Gravity.CENTER);
+        TextView name=text(person.title,23,WHITE);name.setGravity(Gravity.CENTER);
         name.setTypeface(Typeface.create("sans-serif-medium",android.graphics.Typeface.NORMAL));panel.addView(name,-1,-2);
         if(!number.isEmpty()&&!person.title.equals(number)){
-            TextView address=text(number,18,MUTED);address.setGravity(Gravity.CENTER);address.setPadding(0,dp(4),0,dp(4));
+            TextView address=text(number,16,MUTED);address.setGravity(Gravity.CENTER);address.setPadding(0,dp(2),0,dp(3));
             panel.addView(address,-1,-2);
         }
-        if(known){
-            TextView photoHint=text("Нажмите на фото, чтобы изменить",14,BLUE);
-            photoHint.setGravity(Gravity.CENTER);photoHint.setPadding(0,dp(3),0,dp(10));panel.addView(photoHint,-1,-2);
-            photoHint.setOnClickListener(v->editContact(person));
-        }
         if(!number.isEmpty()){
-            LinearLayout shortcuts=line();shortcuts.setPadding(0,dp(12),0,dp(4));panel.addView(shortcuts,-1,-2);
-            TextView call=subscriberAction("Позвонить",R.drawable.dir_callback,true,sheet,
+            LinearLayout shortcuts=line();
+            shortcuts.setPadding(0,dp(12),0,dp(6));
+            panel.addView(shortcuts,-1,-2);
+            TextView call=contactQuickAction("Звонок",R.drawable.dir_callback,true,sheet,
                     ()->chooseNumber(target,n->pick(selected,n,true)));
             shortcuts.addView(call,weight());
-            TextView sms=subscriberAction("Сообщение",R.drawable.dir_sms,false,sheet,
+            TextView sms=contactQuickAction("SMS",R.drawable.dir_sms,false,sheet,
                     ()->chooseNumber(target,n->QuickSms.open(this,n,person.title)));
-            sms.setContentDescription("Написать сообщение");
-            LinearLayout.LayoutParams smsSize=weight();smsSize.leftMargin=dp(8);shortcuts.addView(sms,smsSize);
-        }
-        if(known||!number.isEmpty()){
-            TextView share=subscriberAction(known?"Поделиться контактом":"Поделиться номером",
-                    android.R.drawable.ic_menu_share,false,sheet,()->shareContact(person,number));
-            LinearLayout.LayoutParams shareSize=new LinearLayout.LayoutParams(-1,dp(52));
-            shareSize.topMargin=dp(8);shareSize.bottomMargin=dp(4);
-            panel.addView(share,shareSize);
+            sms.setContentDescription("Написать SMS");
+            LinearLayout.LayoutParams smsSize=weight();smsSize.leftMargin=dp(6);shortcuts.addView(sms,smsSize);
+            TextView share=contactQuickAction("Отправить",android.R.drawable.ic_menu_share,false,sheet,
+                    ()->shareContact(person,number));
+            share.setContentDescription(known?"Поделиться карточкой контакта .vcf":"Поделиться номером");
+            LinearLayout.LayoutParams shareSize=weight();shareSize.leftMargin=dp(6);shortcuts.addView(share,shareSize);
         }
         if(!person.numbers.isEmpty()){
             cardHeading(panel,person.numbers.size()>1?"Номера телефона":"Телефон");
             for(int i=0;i<person.numbers.size();i++){
                 String n=person.numbers.get(i),label=i<person.labels.size()?person.labels.get(i):"Телефон";
-                LinearLayout row=line();row.setPadding(dp(12),dp(7),dp(4),dp(7));row.setBackground(background(0xff1b2d28,15));
-                LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);rp.topMargin=dp(5);panel.addView(row,rp);
-                LinearLayout words=column();words.setGravity(Gravity.CENTER_VERTICAL);words.setMinimumHeight(dp(52));
-                words.addView(text(n,19,WHITE));words.addView(text(label,14,MUTED));
+                LinearLayout row=line();row.setPadding(dp(10),dp(4),dp(4),dp(4));row.setBackground(background(CARD,13));
+                LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);rp.topMargin=dp(4);panel.addView(row,rp);
+                LinearLayout words=column();words.setGravity(Gravity.CENTER_VERTICAL);words.setMinimumHeight(dp(48));
+                words.addView(text(n,16,WHITE));words.addView(text(label,12,MUTED));
                 words.setContentDescription("Позвонить на "+n);words.setBackground(surface(0x001b2d28,10));
                 words.setOnClickListener(v->{sheet.dismiss();pick(selected,n,true);});words.setOnLongClickListener(v->{android.content.ClipboardManager cm=getSystemService(android.content.ClipboardManager.class);cm.setPrimaryClip(android.content.ClipData.newPlainText("Номер телефона",n));Toast.makeText(this,"Номер скопирован",Toast.LENGTH_SHORT).show();return true;});row.addView(words,weight());
                 ImageView message=icon(R.drawable.dir_sms,"Сообщение на "+n,v->{sheet.dismiss();QuickSms.open(this,n,person.title);});
@@ -999,9 +1002,9 @@ public class ContactsScreen extends Activity {
             TextView none=text(completeHistory?"Звонков с этим номером пока нет":"Доступных звонков пока нет",16,MUTED);
             none.setPadding(dp(3),dp(3),dp(3),dp(8));panel.addView(none,-1,-2);
         }else{
-            for(int i=0;i<Math.min(3,events.size());i++){
+            for(int i=0;i<Math.min(2,events.size());i++){
                 Entry event=events.get(i);
-                subscriberRow(panel,callDescription(event),false,sheet,()->subscriber(event));
+                subscriberRow(panel,briefCallDescription(event),false,sheet,()->subscriber(event));
             }
             subscriberRow(panel,"Вся история · "+events.size(),true,sheet,()->showHistory(selected,events));
             if(!selected.isCall())subscriberRow(panel,"Выбрать звонок для прослушивания записи",false,sheet,()->showHistory(selected,events));
@@ -1014,7 +1017,7 @@ public class ContactsScreen extends Activity {
                 else ask(Manifest.permission.READ_CALL_LOG,CALLS_PERMISSION);
             });
         }
-        cardHeading(panel,"Действия с контактом");
+        cardHeading(panel,"Дополнительно");
         if(known){
             subscriberRow(panel,"Изменить контакт и фотографию",false,sheet,()->editContact(person))
                     .setOnClickListener(v->editContact(person));
@@ -1034,14 +1037,22 @@ public class ContactsScreen extends Activity {
         if(known){
             subscriberRow(panel,"Ещё настройки контакта",false,sheet,()->card(person))
                     .setOnClickListener(v->card(person));
-            TextView settings=text("Рингтон, блокировка и другие действия — в контактах телефона.",14,MUTED);
-            settings.setPadding(dp(3),dp(6),dp(3),dp(8));panel.addView(settings,-1,-2);
+            // System contact settings remain available via the row above.
         }
         presentCard(sheet,selected);
     }
     private void cardHeading(LinearLayout panel,String label){
-        TextView heading=text(label,18,BLUE);heading.setTypeface(Typeface.create("sans-serif-medium",android.graphics.Typeface.NORMAL));
-        heading.setPadding(dp(3),dp(19),dp(3),dp(7));panel.addView(heading,-1,-2);
+        TextView heading=text(label,15,BLUE);
+        heading.setTypeface(Typeface.create("sans-serif-medium",android.graphics.Typeface.NORMAL));
+        heading.setPadding(dp(3),dp(13),dp(3),dp(6));
+        panel.addView(heading,-1,-2);
+    }
+    private String briefCallDescription(Entry e){
+        Date when=new Date(e.date);
+        String day=android.text.format.DateFormat.getMediumDateFormat(this).format(when);
+        String clock=android.text.format.DateFormat.getTimeFormat(this).format(when);
+        String length=e.durationSeconds>0&&!e.missed?" · "+android.text.format.DateUtils.formatElapsedTime(e.durationSeconds):"";
+        return (e.detail==null?"Звонок":e.detail)+"  ·  "+day+" "+clock+length;
     }
     private String callDescription(Entry e){
         Date when=new Date(e.date);
@@ -1122,6 +1133,29 @@ public class ContactsScreen extends Activity {
             Toast.makeText(this,"Не удалось добавить ярлык на главный экран",Toast.LENGTH_LONG).show();
         }
     }
+    private TextView contactQuickAction(String label,int iconId,boolean primary,StationSheet sheet,Runnable click){
+        String profile=UiProfiles.id(this);
+        int ink=primary?(UiProfiles.LIGHT.equals(profile)||UiProfiles.PEARL.equals(profile)?0xffffffff:BG):UiProfiles.text(this);
+        TextView action=text(label,12,ink);
+        action.setGravity(Gravity.CENTER);
+        action.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));
+        action.setSingleLine(true);
+        action.setEllipsize(TextUtils.TruncateAt.END);
+        action.setMinHeight(dp(70));
+        action.setPadding(dp(3),dp(7),dp(3),dp(7));
+        action.setBackground(surface(primary?MINT:CARD,14));
+        Drawable glyph=getDrawable(iconId);
+        if(glyph!=null){
+            glyph=glyph.mutate();
+            glyph.setBounds(0,0,dp(19),dp(19));
+            glyph.setTint(ink);
+            action.setCompoundDrawables(null,glyph,null,null);
+            action.setCompoundDrawablePadding(dp(5));
+        }
+        action.setFocusable(true);
+        action.setOnClickListener(v->{sheet.dismiss();click.run();});
+        return action;
+    }
     private TextView subscriberAction(String label,int iconId,boolean primary,StationSheet sheet,Runnable click){
         int ink=primary?BG:WHITE;
         TextView action=text(label,17,ink);
@@ -1143,12 +1177,14 @@ public class ContactsScreen extends Activity {
     }
     private TextView subscriberRow(LinearLayout panel,String label,boolean prominent,StationSheet sheet,Runnable click){
         TextView row=subscriberAction(label,0,false,sheet,click);
+        row.setTextSize(UiProfiles.type(this,15));
         row.setGravity(Gravity.CENTER_VERTICAL|Gravity.START);
-        row.setPadding(dp(15),dp(9),dp(15),dp(9));
-        row.setBackground(surface(prominent?0xff294433:0xff1b2820,14));
+        row.setMinHeight(dp(46));
+        row.setPadding(dp(11),dp(8),dp(11),dp(8));
+        row.setBackground(surface(CARD,12));
         if(prominent)row.setTextColor(MINT);
         LinearLayout.LayoutParams spacing=new LinearLayout.LayoutParams(-1,-2);
-        spacing.topMargin=dp(prominent?10:4);
+        spacing.topMargin=dp(prominent?6:3);
         panel.addView(row,spacing);
         return row;
     }

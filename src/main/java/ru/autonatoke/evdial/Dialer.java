@@ -794,10 +794,10 @@ public class Dialer extends Activity {
   catch(ActivityNotFoundException|SecurityException e){Toast.makeText(activity,message,Toast.LENGTH_LONG).show();}
  }
  void configure(){
-  final String[] titles={"Внешний вид","Звонки и линии","Поведение телефона","Приложение"};
+  final String[] titles={"ОФОРМЛЕНИЕ","ЗВОНКИ И ЛИНИИ","ПОВЕДЕНИЕ","ПРИЛОЖЕНИЕ"};
   final String[][] labels={
-   {"Темы и оформление"},
-   {"Городская линия · SIP","Приём звонков SIM","Входящие на заблокированном экране"},
+   {"Темы и фон"},
+   {"SIP-линия","Звонки через SIM","Входящие на экране блокировки"},
    {"Стартовый экран","Поворот экрана"},
    {"Проверить обновления"}
   };
@@ -807,30 +807,50 @@ public class Dialer extends Activity {
    {()->chooseStart(),()->ScreenOrientation.choose(this)},
    {()->AppUpdates.open(this)}
   };
-  ScrollView sc=new ScrollView(this);
   LinearLayout content=new LinearLayout(this);
   content.setOrientation(LinearLayout.VERTICAL);
-  content.setPadding(dp(18),dp(14),dp(18),dp(16));
-  sc.addView(content);
+  content.setPadding(dp(2),dp(3),dp(2),dp(6));
   for(int i=0;i<titles.length;i++){
-   TextView heading=label(titles[i],17,UiProfiles.accent(this));
-   heading.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
-   heading.setPadding(dp(8),dp(15),dp(8),dp(9));
+   TextView heading=label(titles[i],12,UiProfiles.secondary(this));
+   heading.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));
+   heading.setLetterSpacing(.06f);
+   heading.setPadding(dp(8),dp(i==0?8:15),dp(8),dp(6));
    content.addView(heading,box(-1,-2));
+   LinearLayout section=new LinearLayout(this);
+   section.setOrientation(LinearLayout.VERTICAL);
+   section.setPadding(dp(5),dp(2),dp(5),dp(2));
+   section.setBackground(ElectricUi.surface(this,16,false));
+   content.addView(section,box(-1,-2));
    for(int k=0;k<labels[i].length;k++){
+    if(k>0){
+     View divider=new View(this);
+     divider.setBackgroundColor(UiProfiles.opacity(UiProfiles.muted(this),20));
+     LinearLayout.LayoutParams div=new LinearLayout.LayoutParams(-1,dp(1));
+     div.leftMargin=dp(11);div.rightMargin=dp(11);
+     section.addView(divider,div);
+    }
     final Runnable action=actions[i][k];
-    TextView item=label(labels[i][k]+"   ›",17,UiProfiles.text(this));
+    LinearLayout row=new LinearLayout(this);
+    row.setGravity(Gravity.CENTER_VERTICAL);
+    row.setMinimumHeight(dp(50));
+    row.setPadding(dp(11),dp(7),dp(9),dp(7));
+    android.util.TypedValue feedback=new android.util.TypedValue();
+    if(getTheme().resolveAttribute(android.R.attr.selectableItemBackground,feedback,true)&&feedback.resourceId!=0)
+     row.setBackgroundResource(feedback.resourceId);
+    TextView item=label(labels[i][k],15,UiProfiles.text(this));
     item.setGravity(Gravity.CENTER_VERTICAL);
-    item.setPadding(dp(17),dp(12),dp(12),dp(12));
-    item.setMinHeight(dp(60));
-    item.setBackground(ElectricUi.buttonSurface(this,17));
-    LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
-    lp.bottomMargin=dp(8);content.addView(item,lp);
-    item.setOnClickListener(v->action.run());
+    row.addView(item,new LinearLayout.LayoutParams(0,-2,1));
+    TextView next=label("›",22,UiProfiles.muted(this));
+    next.setGravity(Gravity.CENTER);
+    next.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+    row.addView(next,box(26,40));
+    row.setContentDescription(labels[i][k]);
+    row.setOnClickListener(v->action.run());
+    section.addView(row,box(-1,-2));
    }
   }
-  new StationSheet.Builder(this).setTitle("Настройки EVDial")
-   .setView(sc).setNegativeButton("Закрыть",null).show();
+  new StationSheet.Builder(this).setTitle("Настройки")
+   .setView(content).setNegativeButton("Готово",null).show();
  }
  void chooseStart(){
   int current=java.util.Arrays.asList(START_TABS).indexOf(startTab());
