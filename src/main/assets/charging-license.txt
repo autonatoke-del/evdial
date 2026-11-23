@@ -1,0 +1,5 @@
+Stations: © Open Charge Map Contributors, https://openchargemap.org/
+Source: https://github.com/openchargemap/ocm-export/tree/8e3bedca48ca94807d96b2f5e7ee02cffe63ae54/data/RU
+Snapshot: 2026-04-22. Attribution and licensing: https://github.com/openchargemap/ocm-export#data-licensing-notes
+Only records attributed to DataProviderID=1 are included. Its referencedata.json license is Creative Commons Attribution 4.0 International (CC BY 4.0), https://creativecommons.org/licenses/by/4.0/
+Modifications: subset of approved public Russian locations with a historically operational status; selected and translated fields, rounded coordinates, and normalized town names. No live availability or operator endorsement is implied.

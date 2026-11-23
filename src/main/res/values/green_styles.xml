@@ -1,0 +1,4 @@
+<resources>
+<style name="StationTheme" parent="@android:style/Theme.Material.NoActionBar">
+ <item name="android:colorAccent">#85F6A6</item><item name="android:colorControlActivated">#85F6A6</item><item name="android:colorControlHighlight">#427C52</item><item name="android:colorButtonNormal">#17241D</item><item name="android:windowBackground">#080E0A</item><item name="android:alertDialogTheme">@style/StationDialog</item></style>
+<style name="StationDialog" parent="@android:style/Theme.Material.Dialog.Alert"><item name="android:colorAccent">#85F6A6</item><item name="android:colorControlActivated">#85F6A6</item><item name="android:colorButtonNormal">#17241D</item></style></resources>

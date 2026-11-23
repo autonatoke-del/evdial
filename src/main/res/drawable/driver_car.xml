@@ -1,0 +1,16 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="28dp" android:height="24dp"
+    android:viewportWidth="32" android:viewportHeight="26">
+    <!-- Windshield and bonnet of a car seen head-on. -->
+    <path android:fillColor="#182F25" android:strokeColor="#ABE7BF"
+        android:strokeWidth="1.55" android:strokeLineJoin="round"
+        android:pathData="M4.3,12.2 L7.2,6.4 Q7.9,4.8 10,4.6 Q16,4 22,4.6 Q24.1,4.8 24.8,6.4 L27.7,12.2 L29,14.6 V19.2 Q29,20.3 27.7,20.3 H4.3 Q3,20.3 3,19.2 V14.6 Z"/>
+    <path android:fillColor="@android:color/transparent" android:strokeColor="#83B397"
+        android:strokeWidth="1.35" android:strokeLineCap="round"
+        android:pathData="M6.4,11 Q16,9.9 25.6,11 M12.8,17.4 H19.2"/>
+    <path android:fillColor="@android:color/transparent" android:strokeColor="#ACFFCA"
+        android:strokeWidth="1.9" android:strokeLineCap="round"
+        android:pathData="M6.1,13.9 L10.5,14.9 M25.9,13.9 L21.5,14.9"/>
+    <path android:fillColor="#ABE7BF"
+        android:pathData="M4.1,20 H7.6 V21.5 Q7.6,22.4 6.8,22.4 H4.9 Q4.1,22.4 4.1,21.5 Z M24.4,20 H27.9 V21.5 Q27.9,22.4 27.1,22.4 H25.2 Q24.4,22.4 24.4,21.5 Z"/>
+</vector>
