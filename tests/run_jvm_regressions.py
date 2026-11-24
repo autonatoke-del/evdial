@@ -15,8 +15,9 @@ def main() -> None:
     stubs = sorted((TESTS / "profile-stubs").rglob("*.java"))
     sources = [
         JAVA / "UiProfiles.java", JAVA / "SpeakerRequest.java", JAVA / "UpdateRules.java",
+        JAVA / "SmartDialSearch.java",
         TESTS / "UiProfilesTest.java", TESTS / "SpeakerRequestTest.java",
-        TESTS / "UpdateRulesTest.java",
+        TESTS / "UpdateRulesTest.java", TESTS / "SmartDialSearchTest.java",
     ]
     assert all(f.is_file() for f in sources), "Missing test or production sources"
     assert len(stubs) >= 5, "Missing Android model stubs"
@@ -27,12 +28,12 @@ def main() -> None:
             ["javac", "-encoding", "UTF-8", "-d", str(directory), *map(str, stubs + sources)],
             cwd=ROOT, check=True, timeout=40,
         )
-        for name in ("UiProfilesTest", "SpeakerRequestTest", "UpdateRulesTest"):
+        for name in ("UiProfilesTest", "SpeakerRequestTest", "UpdateRulesTest", "SmartDialSearchTest"):
             subprocess.run(
                 ["java", "-cp", str(directory), "ru.autonatoke.evdial." + name],
                 cwd=ROOT, check=True, timeout=25,
             )
-    print("PASS: three JVM behavior suites; no Android or signing required.")
+    print("PASS: four JVM behavior suites including T9; no Android or signing required.")
 
 
 if __name__ == "__main__":
