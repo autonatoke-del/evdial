@@ -30,6 +30,15 @@ public class Dialer extends Activity {
  boolean sipKeysOpen, batteryRinging;
  EditText number;
  TextView status,detail,action,sipTab,simTab,erase,numberMenu,replyButton;
+ LinearLayout smartPanel,smartPrimary;
+ TextView smartTitle,smartNumber,smartMore,smartInfo;
+ private volatile java.util.List<SmartDialSearch.Entry> smartEntries=java.util.Collections.emptyList();
+ private SmartDialSearch.Matches smartMatches;
+ private final java.util.concurrent.ExecutorService smartWorker=java.util.concurrent.Executors.newSingleThreadExecutor();
+ private final android.os.Handler smartUi=new android.os.Handler(android.os.Looper.getMainLooper());
+ private Runnable smartPending;
+ private int smartQueryGeneration,smartLoadGeneration;
+ private boolean smartLoaded;
  IncomingReply incomingReply;
  SpeedDial speedDial;
  String pending,lookupNumber="",knownName="";
@@ -140,6 +149,7 @@ public class Dialer extends Activity {
   status.setGravity(Gravity.CENTER);
   status.setPadding(dp(4),dp(1),dp(4),dp(3));
   idleCard.addView(status,box(-1,-2));
+  buildSmartSuggestions();
   routes=row();
   routes.setPadding(dp(2),dp(2),dp(2),dp(2));
   ((LinearLayout.LayoutParams)routes.getLayoutParams()).topMargin=dp(8);
@@ -264,6 +274,7 @@ public class Dialer extends Activity {
     if(phone.active==null)updateCallLabel(sim,phone.ready());
     updateNumberMenu();
     if(phone.active==null&&!s.toString().equals(lookupNumber)){knownName="";lookupNumber="";detail.setVisibility(View.GONE);}
+    scheduleSmartSearch();
    }
    public void afterTextChanged(android.text.Editable e){}
   });
@@ -675,8 +686,19 @@ public class Dialer extends Activity {
   if(shownStyle!=null&&!shownStyle.equals(UiProfiles.signature(this))){recreate();return;}
   DriveTools.background(this,findViewById(android.R.id.custom));
   if(phone.listening())phone.updateService();phone.observer=this::refresh;refresh();
+  loadSmartIndex();
  }
- protected void onPause(){phone.observer=null;super.onPause();}
+ protected void onPause(){
+  phone.observer=null;
+  if(smartPending!=null)smartUi.removeCallbacks(smartPending);
+  super.onPause();
+ }
+ @Override protected void onDestroy(){
+  smartQueryGeneration++;smartLoadGeneration++;
+  if(smartPending!=null)smartUi.removeCallbacks(smartPending);
+  smartWorker.shutdownNow();
+  super.onDestroy();
+ }
  protected void onSaveInstanceState(Bundle b){super.onSaveInstanceState(b);b.putString("number",number.getText().toString());b.putInt("pickingSpeedKey",speedDial.picking);b.putBoolean("directoryHome",directoryAtHome);b.putBoolean("directoryOpen",directoryVisible);}
  @Override protected void onStop(){incomingReply.close();super.onStop();}
  void refresh(){
@@ -696,6 +718,7 @@ public class Dialer extends Activity {
   boolean minimal=UiProfiles.MINIMAL.equals(UiProfiles.id(this));
    if(quickBar!=null)quickBar.setVisibility(busy||minimal||!servicesExpanded?View.GONE:View.VISIBLE);
    header.setVisibility(busy||minimal?View.GONE:View.VISIBLE);idleCard.setVisibility(busy?View.GONE:View.VISIBLE);
+   if(smartPanel!=null)smartPanel.setVisibility(busy?View.GONE:(smartMatches!=null?View.VISIBLE:View.GONE));
   idleActions.setVisibility(busy?View.GONE:View.VISIBLE);routes.setVisibility(busy||minimal?View.GONE:View.VISIBLE);
   navigation.setVisibility(busy||minimal?View.GONE:View.VISIBLE);
   callInfo.setVisibility(busy?View.VISIBLE:View.GONE);batterySlot.setVisibility(busy?View.VISIBLE:View.GONE);
