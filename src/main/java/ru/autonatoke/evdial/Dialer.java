@@ -382,6 +382,9 @@ public class Dialer extends Activity {
  }
  private void scheduleSmartSearch(){
   if(smartPanel==null||number==null)return;
+  // Previous suggestions must not dial a stale number while the new query is filtering.
+  smartPanel.setVisibility(View.GONE);
+  smartMatches=null;
   if(smartPending!=null)smartUi.removeCallbacks(smartPending);
   final int ticket=++smartQueryGeneration;
   final String query=number.getText().toString();
