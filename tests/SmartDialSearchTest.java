@@ -54,6 +54,11 @@ public final class SmartDialSearchTest {
         check(SmartDialSearch.search("24452",entries).items.get(0).entry==alina,"Cyrillic name T9 finds Alina");
         check(SmartDialSearch.search("5646",entries).items.get(0).entry==john,"Latin T9 name John");
         check(SmartDialSearch.search("76484",Collections.singletonList(person("Иван Смит","+1 212-555-0111",false))).total==0,"Incorrect T9 no match");
+        SmartDialSearch.Entry tyler=person("Tyler", "+1 212-555-0111", false);
+        SmartDialSearch.Entry shyan=person("Шьян", "+7 901 555-01-01", false);
+        check(SmartDialSearch.search("895",Collections.singletonList(tyler)).total==1,"89 T9 prefix must not normalize to 79");
+        check(SmartDialSearch.search("8995",Collections.singletonList(shyan)).total==1,"Cyrillic 89 T9 prefix preserved");
+        check(SmartDialSearch.search("+895",Collections.singletonList(tyler)).total==0,"International phone query must not match a name");
         SmartDialSearch.Matches last=SmartDialSearch.search("",entries);
         check(last.isRecent,"Empty input requests latest call");
         check(last.total==2,"Empty input shows only distinct recents");
