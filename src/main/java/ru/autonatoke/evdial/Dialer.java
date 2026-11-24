@@ -198,8 +198,8 @@ public class Dialer extends Activity {
   String chars="123456789*0#";
   boolean russian="ru".equals(getResources().getConfiguration().getLocales().get(0).getLanguage());
   String[] legends=russian
-     ?new String[]{"","АБВГ  ABC","ДЕЖЗ  DEF","ИЙКЛ  GHI","МНОП  JKL","РСТУ  MNO",
-        "ФХЦЧ  PQRS","ШЩЪЫ  TUV","ЬЭЮЯ  WXYZ","","+",""}
+     ?new String[]{"","АБВГ\nABC","ДЕЖЗ\nDEF","ИЙКЛ\nGHI","МНОП\nJKL","РСТУ\nMNO",
+        "ФХЦЧ\nPQRS","ШЩЪЫ\nTUV","ЬЭЮЯ\nWXYZ","","+",""}
      :new String[]{"","ABC","DEF","GHI","JKL","MNO","PQRS","TUV","WXYZ","","+",""};
   for(int r=0;r<4;r++){
    LinearLayout line=new LinearLayout(this);
@@ -210,30 +210,15 @@ public class Dialer extends Activity {
     char ch=chars.charAt(i);
     LinearLayout slot=new LinearLayout(this);
     slot.setGravity(Gravity.CENTER);
-    LinearLayout key=new LinearLayout(this);
-    key.setGravity(Gravity.CENTER);
-    key.setOrientation(LinearLayout.VERTICAL);
+    DialpadKey key=new DialpadKey(this,ch,legends[i],UiProfiles.type(this,compact?28:32),
+            UiProfiles.type(this,10),UiProfiles.text(this),UiProfiles.muted(this));
     int circle=compact?72:80;
     GradientDrawable round=new GradientDrawable();
     round.setShape(GradientDrawable.OVAL);
     round.setColor(UiProfiles.keypad(this));
     round.setStroke(dp(1),UiProfiles.opacity(UiProfiles.secondary(this),45));
     key.setBackground(new RippleDrawable(ColorStateList.valueOf(UiProfiles.opacity(UiProfiles.accent(this),25)),round,null));
-    key.setPadding(dp(4),dp(5),dp(4),dp(5));
-    TextView digit=label(""+ch,compact?28:32,FG);
-    digit.setTypeface(Typeface.create("sans-serif",Typeface.BOLD));
-    digit.setIncludeFontPadding(false);
-    digit.setGravity(Gravity.CENTER);
-    key.addView(digit,box(-1,-2));
-    if(!legends[i].isEmpty()){
-     TextView letters=label(legends[i],russian?8:9,MUTED);
-     letters.setSingleLine(true);
-     letters.setIncludeFontPadding(false);
-     letters.setGravity(Gravity.CENTER);
-     letters.setLetterSpacing(.025f);
-     key.addView(letters,box(-1,-2));
-    }
-    key.setContentDescription(ch+(legends[i].isEmpty()?"":" "+legends[i]));
+    key.setContentDescription(ch+(legends[i].isEmpty()?"":" "+legends[i].replace('\n',' ')));
     key.setOnTouchListener((v,event)->{if(event.getAction()==MotionEvent.ACTION_DOWN)v.setAlpha(.76f);else if(event.getAction()==MotionEvent.ACTION_UP||event.getAction()==MotionEvent.ACTION_CANCEL)v.setAlpha(1f);return false;});
     key.setOnClickListener(v->{
      if(phone.active==null)insert(""+ch);

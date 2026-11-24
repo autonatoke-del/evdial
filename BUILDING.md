@@ -21,8 +21,12 @@ python3 tests/run_jvm_regressions.py
 # Available from v0.3.2-rc1:
 python3 tests/CompactUiSourceChecks.py
 gradle assembleRelease lintRelease # unsigned release build, do not publish it
+# Native Android keypad layout, widths 320/360/393dp and font scales up to 200%:
+gradle testDebugUnitTest --tests ru.autonatoke.evdial.DialpadKeyLayoutTest
 ```
 
-The source and JVM tests do NOT prove functional telephony or physical device UI. Test Android default dialer role, SIM/SIP incoming and outgoing calls, double-SIM routing, lock-screen, audio routes, contact permission handling, vCard import/export and updater behavior on Xiaomi/Samsung before a production rollout.
+The keypad layout suite uses Robolectric Native Graphics on Android API 34 and saves renderings under `build/reports/keypad/`. It creates the real keypad component with a plain Android Application, without starting SIP or placing calls.
+
+The source, JVM and keypad layout tests do NOT prove functional telephony or physical device UI. Test Android default dialer role, SIM/SIP incoming and outgoing calls, double-SIM routing, lock-screen, audio routes, contact permission handling, vCard import/export and updater behavior on Xiaomi/Samsung before a production rollout.
 
 No `local.properties` or actual signing secret is committed. Use your own local build configuration.
