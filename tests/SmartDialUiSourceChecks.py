@@ -21,6 +21,7 @@ checks = {
     "background_executor": "Executors.newSingleThreadExecutor()" in dial,
     "search_debounced": "smartUi.postDelayed(smartPending,95);" in dial,
     "stale_results_rejected": "ticket!=smartQueryGeneration" in dial,
+    "stale_suggestion_not_clickable": "smartPanel.setVisibility(View.GONE);\n  smartMatches=null;" in dial,
     "suggestions_follow_active_call": "if(phone.active!=null){smartPanel.setVisibility(View.GONE);return;}" in dial,
     "one_best_match": "results.items.get(0).entry" in dial,
     "more_matches": 'smartMore.setText("Ещё "+smartCountLabel(results.total-1))' in dial,
