@@ -13,7 +13,7 @@ manifest = (ROOT/"src/main/AndroidManifest.xml").read_text(encoding="utf-8")
 build = (ROOT/"build.gradle").read_text(encoding="utf-8")
 
 checks = {
-    "version_16": "versionCode 16; versionName '0.3.3-rc2'" in build,
+    "version_17": "versionCode 17; versionName '0.3.3-rc3'" in build,
     "suggestions_below_number": "idleCard.addView(status,box(-1,-2));\n  buildSmartSuggestions();" in dial,
     "suggestions_before_sim_route": "buildSmartSuggestions();\n  routes=row();" in dial,
     "typing_triggers_search": "scheduleSmartSearch();" in dial and "addTextChangedListener" in dial,
@@ -45,7 +45,7 @@ checks = {
     "international_prefix": '"7" + d.substring(1)' in matcher,
     "russian_t9": '"ABCАБВГ"' in matcher and '"WXYZЬЭЮЯ"' in matcher,
     "round_keypad_buttons": "round.setShape(GradientDrawable.OVAL)" in dial,
-    "cyrillic_and_latin_key_labels": '"АБВГ  ABC"' in dial and '"ЬЭЮЯ  WXYZ"' in dial,
+    "cyrillic_and_latin_key_labels": '"АБВГ\\nABC"' in dial and '"ЬЭЮЯ\\nWXYZ"' in dial,
     "sip_dtmf_preserved": "shownCall.sendDtmf(ch)" in dial,
     "keypad_plus_held": 'if(ch==\'0\')key.setOnLongClickListener' in dial,
     "speed_dial_preserved": "speedDial.press(ch-'0')" in dial,
