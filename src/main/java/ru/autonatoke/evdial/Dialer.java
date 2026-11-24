@@ -195,34 +195,45 @@ public class Dialer extends Activity {
   keypad.setPadding(0,dp(4),0,dp(3));
   body.addView(keypad,box(-1,-2));
   String chars="123456789*0#";
-  String[] legends={"","ABC","DEF","GHI","JKL","MNO","PQRS","TUV","WXYZ","","+",""};
+  boolean russian="ru".equals(getResources().getConfiguration().getLocales().get(0).getLanguage());
+  String[] legends=russian
+     ?new String[]{"","АБВГ  ABC","ДЕЖЗ  DEF","ИЙКЛ  GHI","МНОП  JKL","РСТУ  MNO",
+        "ФХЦЧ  PQRS","ШЩЪЫ  TUV","ЬЭЮЯ  WXYZ","","+",""}
+     :new String[]{"","ABC","DEF","GHI","JKL","MNO","PQRS","TUV","WXYZ","","+",""};
   for(int r=0;r<4;r++){
    LinearLayout line=new LinearLayout(this);
+   line.setGravity(Gravity.CENTER);
    keypad.addView(line,box(-1,-2));
    for(int col=0;col<3;col++){
     int i=r*3+col;
     char ch=chars.charAt(i);
+    LinearLayout slot=new LinearLayout(this);
+    slot.setGravity(Gravity.CENTER);
     LinearLayout key=new LinearLayout(this);
     key.setGravity(Gravity.CENTER);
-    key.setBaselineAligned(false);
-    key.setOrientation(LinearLayout.HORIZONTAL);
-    key.setBackground(glass(UiProfiles.keypad(this),UiProfiles.opacity(UiProfiles.active(this).base,UiProfiles.value(this,UiProfiles.KEYPAD)),UiProfiles.secondary(this),22));
-    key.setMinimumHeight(dp(compact?54:64));key.setPadding(dp(4),dp(7),dp(4),dp(7));
-    TextView digit=label(""+ch,compact?30:34,FG);
-    digit.setTypeface(Typeface.create("sans-serif-condensed",Typeface.BOLD));
+    key.setOrientation(LinearLayout.VERTICAL);
+    int circle=compact?72:80;
+    GradientDrawable round=new GradientDrawable();
+    round.setShape(GradientDrawable.OVAL);
+    round.setColor(UiProfiles.keypad(this));
+    round.setStroke(dp(1),UiProfiles.opacity(UiProfiles.secondary(this),45));
+    key.setBackground(new RippleDrawable(ColorStateList.valueOf(UiProfiles.opacity(UiProfiles.accent(this),25)),round,null));
+    key.setPadding(dp(4),dp(5),dp(4),dp(5));
+    TextView digit=label(""+ch,compact?28:32,FG);
+    digit.setTypeface(Typeface.create("sans-serif",Typeface.BOLD));
     digit.setIncludeFontPadding(false);
     digit.setGravity(Gravity.CENTER);
-    key.addView(digit);
+    key.addView(digit,box(-1,-2));
     if(!legends[i].isEmpty()){
-     TextView letters=label(legends[i],10,0xffbde6ee);
+     TextView letters=label(legends[i],russian?8:9,MUTED);
+     letters.setSingleLine(true);
      letters.setIncludeFontPadding(false);
      letters.setGravity(Gravity.CENTER);
-     letters.setLetterSpacing(.14f);
-     letters.setPadding(dp(5),0,0,0);
-     key.addView(letters);
+     letters.setLetterSpacing(.025f);
+     key.addView(letters,box(-1,-2));
     }
-    key.setContentDescription(""+ch);
-    key.setOnTouchListener((v,event)->{if(event.getAction()==MotionEvent.ACTION_DOWN)v.setAlpha(.72f);else if(event.getAction()==MotionEvent.ACTION_UP||event.getAction()==MotionEvent.ACTION_CANCEL)v.setAlpha(1f);return false;});
+    key.setContentDescription(ch+(legends[i].isEmpty()?"":" "+legends[i]));
+    key.setOnTouchListener((v,event)->{if(event.getAction()==MotionEvent.ACTION_DOWN)v.setAlpha(.76f);else if(event.getAction()==MotionEvent.ACTION_UP||event.getAction()==MotionEvent.ACTION_CANCEL)v.setAlpha(1f);return false;});
     key.setOnClickListener(v->{
      if(phone.active==null)insert(""+ch);
      else if(sipKeysOpen&&phone.active==shownCall&&!phone.ringing())shownCall.sendDtmf(ch);
@@ -232,7 +243,8 @@ public class Dialer extends Activity {
      if(callBlocksNumberActions())return false;
      speedDial.press(ch-'0');return true;
     });
-    line.addView(key,flex(-2));
+    slot.addView(key,box(circle,circle));
+    line.addView(slot,flex(-2));
    }
   }
   idleActions=new LinearLayout(this);
