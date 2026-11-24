@@ -34,11 +34,12 @@ public class Dialer extends Activity {
  TextView smartTitle,smartNumber,smartMore,smartInfo;
  private volatile java.util.List<SmartDialSearch.Entry> smartEntries=java.util.Collections.emptyList();
  private SmartDialSearch.Matches smartMatches;
+ private android.app.Dialog smartDialog;
  private final java.util.concurrent.ExecutorService smartWorker=java.util.concurrent.Executors.newSingleThreadExecutor();
  private final android.os.Handler smartUi=new android.os.Handler(android.os.Looper.getMainLooper());
  private Runnable smartPending;
  private int smartQueryGeneration,smartLoadGeneration;
- private boolean smartLoaded;
+ private boolean smartLoaded,smartResumed;
  IncomingReply incomingReply;
  SpeedDial speedDial;
  String pending,lookupNumber="",knownName="";
@@ -387,6 +388,7 @@ public class Dialer extends Activity {
   smartMatches=null;
   if(smartPending!=null)smartUi.removeCallbacks(smartPending);
   final int ticket=++smartQueryGeneration;
+  if(!smartResumed)return;
   final String query=number.getText().toString();
   smartPending=()->{
    if(!smartLoaded||smartWorker.isShutdown())return;
@@ -394,7 +396,7 @@ public class Dialer extends Activity {
    smartWorker.execute(()->{
     SmartDialSearch.Matches results=SmartDialSearch.search(query,snapshot);
     runOnUiThread(()->{
-     if(ticket!=smartQueryGeneration||isFinishing()||isDestroyed()||!number.getText().toString().equals(query))return;
+     if(!smartResumed||ticket!=smartQueryGeneration||isFinishing()||isDestroyed()||!number.getText().toString().equals(query))return;
      smartMatches=results;
      renderSmartSuggestions(results);
     });
@@ -457,11 +459,20 @@ public class Dialer extends Activity {
   Intent i=new Intent(this,ContactsScreen.class);
   i.putExtra(ContactsScreen.EXTRA_CONTACT_NUMBER,candidate.number);
   i.putExtra(ContactsScreen.EXTRA_CONTACT_LOOKUP,candidate.contactUri);
+  directoryAtHome=false;directoryVisible=true;
   startActivityForResult(i,21);
+ }
+ private void dismissSmartMatches(){
+  android.app.Dialog dialog=smartDialog;
+  smartDialog=null;
+  if(dialog!=null)dialog.dismiss();
  }
  private void showSmartMatches(SmartDialSearch.Matches results){
   if(results==null||results.items.isEmpty()||callBlocksNumberActions())return;
+  dismissSmartMatches();
   android.app.Dialog dialog=new android.app.Dialog(this);
+  smartDialog=dialog;
+  dialog.setOnDismissListener(ignored->{if(smartDialog==dialog)smartDialog=null;});
   dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
   LinearLayout panel=new LinearLayout(this);
   panel.setOrientation(LinearLayout.VERTICAL);
@@ -714,6 +725,7 @@ public class Dialer extends Activity {
  public void onNewIntent(Intent i){
   super.onNewIntent(i);setIntent(i);
   boolean contactShortcut=ContactsScreen.ACTION_OPEN_CONTACT.equals(i.getAction());
+  if(phone.active!=null||isNumberIntent(i)||contactShortcut)dismissSmartMatches();
   if(directoryVisible&&(phone.active!=null||isNumberIntent(i)||contactShortcut)){
    if(contactShortcut)pendingContactShortcut=new Intent(i);
    directoryAtHome=false;finishActivity(21);
@@ -891,6 +903,7 @@ public class Dialer extends Activity {
 
  protected void onResume(){
   super.onResume();
+  smartResumed=true;
   if(shownStyle!=null&&!shownStyle.equals(UiProfiles.signature(this))){recreate();return;}
   DriveTools.background(this,findViewById(android.R.id.custom));
   if(phone.listening())phone.updateService();phone.observer=this::refresh;refresh();
@@ -898,12 +911,19 @@ public class Dialer extends Activity {
  }
  protected void onPause(){
   phone.observer=null;
+  smartResumed=false;
+  smartQueryGeneration++;smartLoadGeneration++;
   if(smartPending!=null)smartUi.removeCallbacks(smartPending);
+  dismissSmartMatches();
+  if(smartPanel!=null)smartPanel.setVisibility(View.GONE);
+  smartMatches=null;
   super.onPause();
  }
  @Override protected void onDestroy(){
+  smartResumed=false;
   smartQueryGeneration++;smartLoadGeneration++;
   if(smartPending!=null)smartUi.removeCallbacks(smartPending);
+  dismissSmartMatches();
   smartWorker.shutdownNow();
   super.onDestroy();
  }
@@ -912,6 +932,7 @@ public class Dialer extends Activity {
  void refresh(){
   incomingReply.reconcile();
   boolean busy=phone.active!=null, incoming=phone.ringing(), cell=sim&&!busy;
+  if(busy)dismissSmartMatches();
   boolean sipReady=phone.ready();
 
   String sipState=sipReady?"SIP подключён":"SIP не подключён";

@@ -27,6 +27,6 @@ assert_contains('DriverBadge.java','R.drawable.trirubina_mark')
 assert_contains('BatteryCallControl.java','UiProfiles.accent(getContext())')
 assert (ROOT/'src/main/res/drawable-nodpi/trirubina_mark.png').stat().st_size>100
 checks.append(('assets','original rubina mark'))
-assert "versionCode 15; versionName '0.3.3-rc1'" in (ROOT/'build.gradle').read_text()
-checks.append(('build.gradle','0.3.1 release candidate version'))
+assert "versionCode 16; versionName '0.3.3-rc2'" in (ROOT/'build.gradle').read_text()
+checks.append(('build.gradle','0.3.3-rc2 release candidate version'))
 print(f'PASS: {len(checks)} theme, linking, persistence and safety source assertions')

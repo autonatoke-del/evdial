@@ -13,7 +13,7 @@ manifest = (ROOT/"src/main/AndroidManifest.xml").read_text(encoding="utf-8")
 build = (ROOT/"build.gradle").read_text(encoding="utf-8")
 
 checks = {
-    "version_15": "versionCode 15; versionName '0.3.3-rc1'" in build,
+    "version_16": "versionCode 16; versionName '0.3.3-rc2'" in build,
     "suggestions_below_number": "idleCard.addView(status,box(-1,-2));\n  buildSmartSuggestions();" in dial,
     "suggestions_before_sim_route": "buildSmartSuggestions();\n  routes=row();" in dial,
     "typing_triggers_search": "scheduleSmartSearch();" in dial and "addTextChangedListener" in dial,
