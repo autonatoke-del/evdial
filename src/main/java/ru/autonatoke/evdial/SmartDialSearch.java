@@ -72,6 +72,7 @@ final class SmartDialSearch {
         StringBuilder result = new StringBuilder(upper.length());
         for (int i = 0; i < upper.length(); i++) {
             char ch = upper.charAt(i);
+            if (Character.getType(ch) == Character.NON_SPACING_MARK) continue;
             if (ch >= '0' && ch <= '9') result.append(ch);
             else if ("ABCАБВГ".indexOf(ch) >= 0) result.append('2');
             else if ("DEFДЕЖЗ".indexOf(ch) >= 0) result.append('3');
