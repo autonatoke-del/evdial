@@ -87,7 +87,7 @@ final class SmartDialSearch {
         return result.toString();
     }
 
-    private static int score(Entry entry, String query) {
+    private static int score(Entry entry, String query, String nameQuery) {
         String canonical = nationalDigits(entry.number);
         if (canonical.isEmpty()) return Integer.MAX_VALUE;
         if (canonical.equals(query)) return entry.recent ? -2 : -6;
@@ -95,13 +95,13 @@ final class SmartDialSearch {
         if (canonical.contains(query)) return entry.recent ? 29 : 24;
 
         // Two or more keypad digits can represent the beginning of any word in a name.
-        if (query.length() >= 2 && !entry.name.isEmpty()) {
+        if (nameQuery.length() >= 2 && !entry.name.isEmpty()) {
             String mapped = t9(entry.name);
-            if (mapped.startsWith(query)) return 10;
+            if (mapped.startsWith(nameQuery)) return 10;
             for (String token : mapped.split(" +")) {
-                if (token.startsWith(query)) return 13;
+                if (token.startsWith(nameQuery)) return 13;
             }
-            if (query.length() >= 3 && mapped.contains(query)) return 35;
+            if (nameQuery.length() >= 3 && mapped.contains(nameQuery)) return 35;
         }
         return Integer.MAX_VALUE;
     }
@@ -125,13 +125,15 @@ final class SmartDialSearch {
         if (!input.isEmpty() && !input.matches("\\+?[0-9() .-]+"))
             return new Matches(new ArrayList<>(), 0, false);
         String query = nationalDigits(input);
+        // A keypad name sequence is not a telephone prefix. Never normalize its 8 to 7.
+        String nameQuery = input.matches("[0-9]+") ? input : "";
         if (query.isEmpty() && !input.isEmpty()) return new Matches(new ArrayList<>(), 0, false);
         // Group the exact same dialable number across SIM/SIP call history and contacts.
         Map<String, Hit> unique = new LinkedHashMap<>();
         for (Entry item : entries) {
             if (item == null || item.number.isEmpty()) continue;
             if (query.isEmpty() && !item.recent) continue;
-            int rating = query.isEmpty() ? 0 : score(item, query);
+            int rating = query.isEmpty() ? 0 : score(item, query, nameQuery);
             if (rating == Integer.MAX_VALUE) continue;
             String key = nationalDigits(item.number);
             if (key.isEmpty()) continue;
