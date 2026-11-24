@@ -30,6 +30,16 @@ public class Dialer extends Activity {
  boolean sipKeysOpen, batteryRinging;
  EditText number;
  TextView status,detail,action,sipTab,simTab,erase,numberMenu,replyButton;
+ LinearLayout smartPanel,smartPrimary;
+ TextView smartTitle,smartNumber,smartMore,smartInfo;
+ private volatile java.util.List<SmartDialSearch.Entry> smartEntries=java.util.Collections.emptyList();
+ private SmartDialSearch.Matches smartMatches;
+ private android.app.Dialog smartDialog;
+ private final java.util.concurrent.ExecutorService smartWorker=java.util.concurrent.Executors.newSingleThreadExecutor();
+ private final android.os.Handler smartUi=new android.os.Handler(android.os.Looper.getMainLooper());
+ private Runnable smartPending;
+ private int smartQueryGeneration,smartLoadGeneration;
+ private boolean smartLoaded,smartResumed;
  IncomingReply incomingReply;
  SpeedDial speedDial;
  String pending,lookupNumber="",knownName="";
@@ -140,6 +150,7 @@ public class Dialer extends Activity {
   status.setGravity(Gravity.CENTER);
   status.setPadding(dp(4),dp(1),dp(4),dp(3));
   idleCard.addView(status,box(-1,-2));
+  buildSmartSuggestions();
   routes=row();
   routes.setPadding(dp(2),dp(2),dp(2),dp(2));
   ((LinearLayout.LayoutParams)routes.getLayoutParams()).topMargin=dp(8);
@@ -185,34 +196,45 @@ public class Dialer extends Activity {
   keypad.setPadding(0,dp(4),0,dp(3));
   body.addView(keypad,box(-1,-2));
   String chars="123456789*0#";
-  String[] legends={"","ABC","DEF","GHI","JKL","MNO","PQRS","TUV","WXYZ","","+",""};
+  boolean russian="ru".equals(getResources().getConfiguration().getLocales().get(0).getLanguage());
+  String[] legends=russian
+     ?new String[]{"","АБВГ  ABC","ДЕЖЗ  DEF","ИЙКЛ  GHI","МНОП  JKL","РСТУ  MNO",
+        "ФХЦЧ  PQRS","ШЩЪЫ  TUV","ЬЭЮЯ  WXYZ","","+",""}
+     :new String[]{"","ABC","DEF","GHI","JKL","MNO","PQRS","TUV","WXYZ","","+",""};
   for(int r=0;r<4;r++){
    LinearLayout line=new LinearLayout(this);
+   line.setGravity(Gravity.CENTER);
    keypad.addView(line,box(-1,-2));
    for(int col=0;col<3;col++){
     int i=r*3+col;
     char ch=chars.charAt(i);
+    LinearLayout slot=new LinearLayout(this);
+    slot.setGravity(Gravity.CENTER);
     LinearLayout key=new LinearLayout(this);
     key.setGravity(Gravity.CENTER);
-    key.setBaselineAligned(false);
-    key.setOrientation(LinearLayout.HORIZONTAL);
-    key.setBackground(glass(UiProfiles.keypad(this),UiProfiles.opacity(UiProfiles.active(this).base,UiProfiles.value(this,UiProfiles.KEYPAD)),UiProfiles.secondary(this),22));
-    key.setMinimumHeight(dp(compact?54:64));key.setPadding(dp(4),dp(7),dp(4),dp(7));
-    TextView digit=label(""+ch,compact?30:34,FG);
-    digit.setTypeface(Typeface.create("sans-serif-condensed",Typeface.BOLD));
+    key.setOrientation(LinearLayout.VERTICAL);
+    int circle=compact?72:80;
+    GradientDrawable round=new GradientDrawable();
+    round.setShape(GradientDrawable.OVAL);
+    round.setColor(UiProfiles.keypad(this));
+    round.setStroke(dp(1),UiProfiles.opacity(UiProfiles.secondary(this),45));
+    key.setBackground(new RippleDrawable(ColorStateList.valueOf(UiProfiles.opacity(UiProfiles.accent(this),25)),round,null));
+    key.setPadding(dp(4),dp(5),dp(4),dp(5));
+    TextView digit=label(""+ch,compact?28:32,FG);
+    digit.setTypeface(Typeface.create("sans-serif",Typeface.BOLD));
     digit.setIncludeFontPadding(false);
     digit.setGravity(Gravity.CENTER);
-    key.addView(digit);
+    key.addView(digit,box(-1,-2));
     if(!legends[i].isEmpty()){
-     TextView letters=label(legends[i],10,0xffbde6ee);
+     TextView letters=label(legends[i],russian?8:9,MUTED);
+     letters.setSingleLine(true);
      letters.setIncludeFontPadding(false);
      letters.setGravity(Gravity.CENTER);
-     letters.setLetterSpacing(.14f);
-     letters.setPadding(dp(5),0,0,0);
-     key.addView(letters);
+     letters.setLetterSpacing(.025f);
+     key.addView(letters,box(-1,-2));
     }
-    key.setContentDescription(""+ch);
-    key.setOnTouchListener((v,event)->{if(event.getAction()==MotionEvent.ACTION_DOWN)v.setAlpha(.72f);else if(event.getAction()==MotionEvent.ACTION_UP||event.getAction()==MotionEvent.ACTION_CANCEL)v.setAlpha(1f);return false;});
+    key.setContentDescription(ch+(legends[i].isEmpty()?"":" "+legends[i]));
+    key.setOnTouchListener((v,event)->{if(event.getAction()==MotionEvent.ACTION_DOWN)v.setAlpha(.76f);else if(event.getAction()==MotionEvent.ACTION_UP||event.getAction()==MotionEvent.ACTION_CANCEL)v.setAlpha(1f);return false;});
     key.setOnClickListener(v->{
      if(phone.active==null)insert(""+ch);
      else if(sipKeysOpen&&phone.active==shownCall&&!phone.ringing())shownCall.sendDtmf(ch);
@@ -222,7 +244,8 @@ public class Dialer extends Activity {
      if(callBlocksNumberActions())return false;
      speedDial.press(ch-'0');return true;
     });
-    line.addView(key,flex(-2));
+    slot.addView(key,box(circle,circle));
+    line.addView(slot,flex(-2));
    }
   }
   idleActions=new LinearLayout(this);
@@ -264,6 +287,7 @@ public class Dialer extends Activity {
     if(phone.active==null)updateCallLabel(sim,phone.ready());
     updateNumberMenu();
     if(phone.active==null&&!s.toString().equals(lookupNumber)){knownName="";lookupNumber="";detail.setVisibility(View.GONE);}
+    scheduleSmartSearch();
    }
    public void afterTextChanged(android.text.Editable e){}
   });
@@ -306,6 +330,212 @@ public class Dialer extends Activity {
   if(quickBar!=null){
    boolean minimal=UiProfiles.MINIMAL.equals(UiProfiles.id(this));
    quickBar.setVisibility(servicesExpanded&&!minimal&&phone.active==null?View.VISIBLE:View.GONE);
+  }
+ }
+ private void buildSmartSuggestions(){
+  smartPanel=new LinearLayout(this);
+  smartPanel.setOrientation(LinearLayout.VERTICAL);
+  smartPanel.setPadding(dp(10),dp(5),dp(10),dp(5));
+  smartPanel.setBackground(shape(UiProfiles.panel(this),16));
+  smartPanel.setVisibility(View.GONE);
+  LinearLayout.LayoutParams panelSize=box(-1,-2);
+  panelSize.topMargin=dp(5);panelSize.bottomMargin=dp(5);
+  body.addView(smartPanel,panelSize);
+  smartPrimary=new LinearLayout(this);
+  smartPrimary.setGravity(Gravity.CENTER_VERTICAL);
+  smartPrimary.setMinimumHeight(dp(49));
+  smartPrimary.setPadding(dp(6),dp(2),dp(4),dp(2));
+  smartPanel.addView(smartPrimary,box(-1,-2));
+  LinearLayout infoText=new LinearLayout(this);
+  infoText.setOrientation(LinearLayout.VERTICAL);
+  infoText.setGravity(Gravity.CENTER_VERTICAL);
+  smartTitle=label("",15,FG);
+  smartTitle.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));
+  smartTitle.setSingleLine(true);
+  smartTitle.setEllipsize(android.text.TextUtils.TruncateAt.END);
+  smartNumber=label("",12,MUTED);
+  smartNumber.setSingleLine(true);
+  smartNumber.setEllipsize(android.text.TextUtils.TruncateAt.END);
+  infoText.addView(smartTitle,box(-1,-2));
+  infoText.addView(smartNumber,box(-1,-2));
+  smartPrimary.addView(infoText,new LinearLayout.LayoutParams(0,-2,1));
+  smartInfo=label("ⓘ",23,UiProfiles.secondary(this));
+  smartInfo.setGravity(Gravity.CENTER);
+  smartInfo.setContentDescription("Открыть карточку контакта");
+  smartPrimary.addView(smartInfo,box(48,48));
+  smartMore=label("",13,UiProfiles.secondary(this));
+  smartMore.setGravity(Gravity.CENTER_VERTICAL);
+  smartMore.setPadding(dp(8),dp(3),dp(8),dp(5));
+  smartMore.setMinHeight(dp(36));
+  smartPanel.addView(smartMore,box(-1,-2));
+ }
+ private void loadSmartIndex(){
+  if(smartWorker.isShutdown())return;
+  final int ticket=++smartLoadGeneration;
+  smartWorker.execute(()->{
+   java.util.List<SmartDialSearch.Entry> fresh=SmartDialIndex.load(getApplicationContext());
+   runOnUiThread(()->{
+    if(ticket!=smartLoadGeneration||isFinishing()||isDestroyed())return;
+    smartEntries=fresh;smartLoaded=true;
+    scheduleSmartSearch();
+   });
+  });
+ }
+ private void scheduleSmartSearch(){
+  if(smartPanel==null||number==null)return;
+  // Previous suggestions must not dial a stale number while the new query is filtering.
+  smartPanel.setVisibility(View.GONE);
+  smartMatches=null;
+  if(smartPending!=null)smartUi.removeCallbacks(smartPending);
+  final int ticket=++smartQueryGeneration;
+  if(!smartResumed)return;
+  final String query=number.getText().toString();
+  smartPending=()->{
+   if(!smartLoaded||smartWorker.isShutdown())return;
+   final java.util.List<SmartDialSearch.Entry> snapshot=smartEntries;
+   smartWorker.execute(()->{
+    SmartDialSearch.Matches results=SmartDialSearch.search(query,snapshot);
+    runOnUiThread(()->{
+     if(!smartResumed||ticket!=smartQueryGeneration||isFinishing()||isDestroyed()||!number.getText().toString().equals(query))return;
+     smartMatches=results;
+     renderSmartSuggestions(results);
+    });
+   });
+  };
+  smartUi.postDelayed(smartPending,95);
+ }
+ private static String smartCountLabel(int count){
+  int n=Math.abs(count);
+  int tail=n%100;
+  String word=tail>=11&&tail<=14?"результатов":n%10==1?"результат":n%10>=2&&n%10<=4?"результата":"результатов";
+  return count+" "+word;
+ }
+ private void renderSmartSuggestions(SmartDialSearch.Matches results){
+  if(smartPanel==null)return;
+  if(phone.active!=null){smartPanel.setVisibility(View.GONE);return;}
+  smartPanel.setVisibility(View.VISIBLE);
+  if(results.total==0){
+   smartTitle.setText(results.isRecent?"Недавние звонки":"Совпадений не найдено");
+   smartNumber.setText(results.isRecent?"История SIM и SIP":"Попробуйте другой номер или имя");
+   smartPrimary.setContentDescription(results.isRecent?"Открыть последние звонки":"Поиск в адресной книге");
+   smartInfo.setVisibility(View.GONE);
+   smartPrimary.setOnClickListener(v->openDirectory(results.isRecent,false,results.isRecent?null:number.getText().toString()));
+   smartMore.setVisibility(View.GONE);
+   return;
+  }
+  SmartDialSearch.Entry first=results.items.get(0).entry;
+  smartTitle.setText(results.isRecent?"Последний · "+first.name:first.name);
+  smartNumber.setText(first.number);
+  smartPrimary.setContentDescription(first.name+", "+first.number+". Позвонить");
+  smartPrimary.setOnClickListener(v->applySmartSelection(first,true));
+  smartInfo.setVisibility(View.VISIBLE);
+  smartInfo.setContentDescription("Открыть карточку "+first.name);
+  smartInfo.setOnClickListener(v->openSmartContact(first));
+  if(results.isRecent){
+   smartMore.setText("Все недавние вызовы");
+   smartMore.setVisibility(View.VISIBLE);
+   smartMore.setOnClickListener(v->openDirectory(true));
+  }else if(results.total>1){
+   smartMore.setText("Ещё "+smartCountLabel(results.total-1));
+   smartMore.setVisibility(View.VISIBLE);
+   smartMore.setOnClickListener(v->showSmartMatches(results));
+  }else{
+   smartMore.setVisibility(View.GONE);
+  }
+ }
+ private void applySmartSelection(SmartDialSearch.Entry candidate,boolean call){
+  if(candidate==null||callBlocksNumberActions())return;
+  number.setText(candidate.number);
+  number.setSelection(number.length());
+  lookupName(candidate.number);
+  if(call)startOutgoing();
+ }
+ private void openSmartContact(SmartDialSearch.Entry candidate){
+  if(candidate==null||callBlocksNumberActions())return;
+  if(candidate.contactUri.isEmpty()){
+   openDirectory(true,false,candidate.number);
+   return;
+  }
+  Intent i=new Intent(this,ContactsScreen.class);
+  i.putExtra(ContactsScreen.EXTRA_CONTACT_NUMBER,candidate.number);
+  i.putExtra(ContactsScreen.EXTRA_CONTACT_LOOKUP,candidate.contactUri);
+  directoryAtHome=false;directoryVisible=true;
+  startActivityForResult(i,21);
+ }
+ private void dismissSmartMatches(){
+  android.app.Dialog dialog=smartDialog;
+  smartDialog=null;
+  if(dialog!=null)dialog.dismiss();
+ }
+ private void showSmartMatches(SmartDialSearch.Matches results){
+  if(results==null||results.items.isEmpty()||callBlocksNumberActions())return;
+  dismissSmartMatches();
+  android.app.Dialog dialog=new android.app.Dialog(this);
+  smartDialog=dialog;
+  dialog.setOnDismissListener(ignored->{if(smartDialog==dialog)smartDialog=null;});
+  dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+  LinearLayout panel=new LinearLayout(this);
+  panel.setOrientation(LinearLayout.VERTICAL);
+  panel.setPadding(dp(14),dp(10),dp(14),dp(10));
+  panel.setBackground(shape(UiProfiles.panel(this),20));
+  TextView title=label("Совпадения · "+results.total,19,FG);
+  title.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));
+  title.setPadding(dp(5),dp(8),dp(5),dp(12));
+  panel.addView(title,box(-1,-2));
+  ListView list=new ListView(this);
+  list.setDividerHeight(0);
+  panel.addView(list,new LinearLayout.LayoutParams(-1,0,1));
+  list.setAdapter(new BaseAdapter(){
+   public int getCount(){return results.items.size();}
+   public Object getItem(int position){return results.items.get(position);}
+   public long getItemId(int position){return position;}
+   public View getView(int position,View recycled,android.view.ViewGroup parent){
+    LinearLayout row;
+    if(recycled instanceof LinearLayout && ((LinearLayout)recycled).getChildCount()==2){
+     row=(LinearLayout)recycled;
+    }else{
+     row=new LinearLayout(Dialer.this);
+     row.setGravity(Gravity.CENTER_VERTICAL);
+     row.setMinimumHeight(dp(62));
+     row.setPadding(dp(8),dp(5),dp(4),dp(5));
+     LinearLayout texts=new LinearLayout(Dialer.this);
+     texts.setOrientation(LinearLayout.VERTICAL);
+     texts.addView(label("",15,FG),box(-1,-2));
+     texts.addView(label("",12,MUTED),box(-1,-2));
+     row.addView(texts,new LinearLayout.LayoutParams(0,-2,1));
+     TextView open=label("ⓘ",21,UiProfiles.secondary(Dialer.this));
+     open.setGravity(Gravity.CENTER);
+     row.addView(open,box(48,48));
+    }
+    SmartDialSearch.Entry item=results.items.get(position).entry;
+    LinearLayout texts=(LinearLayout)row.getChildAt(0);
+    ((TextView)texts.getChildAt(0)).setText(item.name);
+    ((TextView)texts.getChildAt(1)).setText(item.number);
+    TextView open=(TextView)row.getChildAt(1);
+    open.setContentDescription("Карточка "+item.name);
+    open.setOnClickListener(v->{dialog.dismiss();openSmartContact(item);});
+    row.setContentDescription(item.name+", "+item.number+". Позвонить");
+    return row;
+   }
+  });
+  list.setOnItemClickListener((parent,view,position,id)->{
+   SmartDialSearch.Entry entry=results.items.get(position).entry;
+   dialog.dismiss();
+   applySmartSelection(entry,true);
+  });
+  TextView close=label("Закрыть",15,UiProfiles.secondary(this));
+  close.setGravity(Gravity.CENTER);
+  close.setMinHeight(dp(44));
+  close.setOnClickListener(v->dialog.dismiss());
+  panel.addView(close,box(-1,-2));
+  dialog.setContentView(panel);
+  dialog.show();
+  android.view.Window window=dialog.getWindow();
+  if(window!=null){
+   window.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+   window.setGravity(Gravity.BOTTOM);
+   window.setLayout(Math.min(getResources().getDisplayMetrics().widthPixels,dp(550)),
+          (int)(getResources().getDisplayMetrics().heightPixels*.72f));
   }
  }
  private void fitNumber(int preferredSp){
@@ -495,6 +725,7 @@ public class Dialer extends Activity {
  public void onNewIntent(Intent i){
   super.onNewIntent(i);setIntent(i);
   boolean contactShortcut=ContactsScreen.ACTION_OPEN_CONTACT.equals(i.getAction());
+  if(phone.active!=null||isNumberIntent(i)||contactShortcut)dismissSmartMatches();
   if(directoryVisible&&(phone.active!=null||isNumberIntent(i)||contactShortcut)){
    if(contactShortcut)pendingContactShortcut=new Intent(i);
    directoryAtHome=false;finishActivity(21);
@@ -672,16 +903,36 @@ public class Dialer extends Activity {
 
  protected void onResume(){
   super.onResume();
+  smartResumed=true;
   if(shownStyle!=null&&!shownStyle.equals(UiProfiles.signature(this))){recreate();return;}
   DriveTools.background(this,findViewById(android.R.id.custom));
   if(phone.listening())phone.updateService();phone.observer=this::refresh;refresh();
+  loadSmartIndex();
  }
- protected void onPause(){phone.observer=null;super.onPause();}
+ protected void onPause(){
+  phone.observer=null;
+  smartResumed=false;
+  smartQueryGeneration++;smartLoadGeneration++;
+  if(smartPending!=null)smartUi.removeCallbacks(smartPending);
+  dismissSmartMatches();
+  if(smartPanel!=null)smartPanel.setVisibility(View.GONE);
+  smartMatches=null;
+  super.onPause();
+ }
+ @Override protected void onDestroy(){
+  smartResumed=false;
+  smartQueryGeneration++;smartLoadGeneration++;
+  if(smartPending!=null)smartUi.removeCallbacks(smartPending);
+  dismissSmartMatches();
+  smartWorker.shutdownNow();
+  super.onDestroy();
+ }
  protected void onSaveInstanceState(Bundle b){super.onSaveInstanceState(b);b.putString("number",number.getText().toString());b.putInt("pickingSpeedKey",speedDial.picking);b.putBoolean("directoryHome",directoryAtHome);b.putBoolean("directoryOpen",directoryVisible);}
  @Override protected void onStop(){incomingReply.close();super.onStop();}
  void refresh(){
   incomingReply.reconcile();
   boolean busy=phone.active!=null, incoming=phone.ringing(), cell=sim&&!busy;
+  if(busy)dismissSmartMatches();
   boolean sipReady=phone.ready();
 
   String sipState=sipReady?"SIP подключён":"SIP не подключён";
@@ -696,6 +947,7 @@ public class Dialer extends Activity {
   boolean minimal=UiProfiles.MINIMAL.equals(UiProfiles.id(this));
    if(quickBar!=null)quickBar.setVisibility(busy||minimal||!servicesExpanded?View.GONE:View.VISIBLE);
    header.setVisibility(busy||minimal?View.GONE:View.VISIBLE);idleCard.setVisibility(busy?View.GONE:View.VISIBLE);
+   if(smartPanel!=null)smartPanel.setVisibility(busy?View.GONE:(smartMatches!=null?View.VISIBLE:View.GONE));
   idleActions.setVisibility(busy?View.GONE:View.VISIBLE);routes.setVisibility(busy||minimal?View.GONE:View.VISIBLE);
   navigation.setVisibility(busy||minimal?View.GONE:View.VISIBLE);
   callInfo.setVisibility(busy?View.VISIBLE:View.GONE);batterySlot.setVisibility(busy?View.VISIBLE:View.GONE);
