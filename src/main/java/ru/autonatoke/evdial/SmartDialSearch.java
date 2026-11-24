@@ -122,7 +122,7 @@ final class SmartDialSearch {
     static Matches search(String rawInput, List<Entry> entries) {
         if (entries == null || entries.isEmpty()) return new Matches(new ArrayList<>(), 0, rawInput == null || rawInput.isEmpty());
         String input = rawInput == null ? "" : rawInput.trim();
-        if (!input.isEmpty() && !input.matches("[+0-9() .-]+"))
+        if (!input.isEmpty() && !input.matches("\\+?[0-9() .-]+"))
             return new Matches(new ArrayList<>(), 0, false);
         String query = nationalDigits(input);
         if (query.isEmpty() && !input.isEmpty()) return new Matches(new ArrayList<>(), 0, false);
