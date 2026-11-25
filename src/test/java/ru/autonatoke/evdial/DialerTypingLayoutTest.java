@@ -271,7 +271,12 @@ public final class DialerTypingLayoutTest {
         }
         // The result actions are inspected, never clicked: they can initiate a call.
         layoutAndDraw();
-        baseline.assertUnchanged(new Geometry(activity, scroll), phase + " / restored");
+        baseline.assertLocalUnchanged(new Geometry(activity, scroll), phase + " / restored");
+        // Call mode intentionally reflows the viewport. Restore this fixture's scroll before
+        // continuing the strict screen-position checks for ordinary idle typing.
+        scroll.scrollTo(0, baseline.scrollY);
+        layoutAndDraw();
+        baseline.assertUnchanged(new Geometry(activity, scroll), phase + " / idle fixture restored");
     }
 
     private void assertMatches(int total, boolean recent) {
@@ -369,14 +374,18 @@ public final class DialerTypingLayoutTest {
         }
 
         void assertUnchanged(Geometry now, String phase) {
+            assertLocalUnchanged(now, phase);
+            assertArrayEquals(phase + ": keypad screen position", keypadScreen, now.keypadScreen);
+            assertArrayEquals(phase + ": call-button screen position", callScreen, now.callScreen);
+            assertEquals(phase + ": scroll position", scrollY, now.scrollY);
+        }
+
+        void assertLocalUnchanged(Geometry now, String phase) {
             assertEquals(phase + ": number-row height", numberHeight, now.numberHeight);
             assertEquals(phase + ": number-field width", numberWidth, now.numberWidth);
             assertEquals(phase + ": reserved suggestions height", suggestionsHeight, now.suggestionsHeight);
             assertEquals(phase + ": keypad position in body", keypadTop, now.keypadTop);
-            assertArrayEquals(phase + ": keypad screen position", keypadScreen, now.keypadScreen);
-            assertArrayEquals(phase + ": call-button screen position", callScreen, now.callScreen);
             assertEquals(phase + ": call-button height", callHeight, now.callHeight);
-            assertEquals(phase + ": scroll position", scrollY, now.scrollY);
         }
     }
 }
