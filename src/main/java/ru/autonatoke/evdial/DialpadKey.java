@@ -9,35 +9,27 @@ import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-/** A fixed-size dialpad key whose digit and alphabet guides fit their measured space. */
+/** A fixed-size dialpad key with one centered, automatically sized digit. */
 final class DialpadKey extends LinearLayout {
     final TextView digitView;
-    final TextView legendView;
 
-    DialpadKey(Context context, char digit, String legend, int digitSp, int legendSp,
-               int textColor, int legendColor) {
+    DialpadKey(Context context, char digit, int digitSp, int textColor) {
         super(context);
         setOrientation(VERTICAL);
         setGravity(Gravity.CENTER);
         setBaselineAligned(false);
+        setContentDescription(String.valueOf(digit));
+        setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
         DisplayMetrics metrics = getResources().getDisplayMetrics();
         setPadding(dp(4, metrics), dp(5, metrics), dp(4, metrics), dp(5, metrics));
 
-        digitView = text(context, String.valueOf(digit), 1, textColor);
+        digitView = text(context, String.valueOf(digit), textColor);
         digitView.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
         fit(digitView, 18, digitSp, metrics);
-        addView(digitView, new LayoutParams(LayoutParams.MATCH_PARENT, 0, 3f));
-
-        String guide = legend == null ? "" : legend;
-        legendView = text(context, guide, guide.indexOf('\n') >= 0 ? 2 : 1, legendColor);
-        legendView.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
-        legendView.setLetterSpacing(.025f);
-        fit(legendView, 8, legendSp, metrics);
-        // Keep this area even on 1, * and # so every digit has the same baseline.
-        addView(legendView, new LayoutParams(LayoutParams.MATCH_PARENT, 0, 2f));
+        addView(digitView, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
     }
 
-    private static TextView text(Context context, String value, int lines, int color) {
+    private static TextView text(Context context, String value, int color) {
         TextView view = new TextView(context);
         view.setText(value);
         view.setTextColor(color);
@@ -45,12 +37,12 @@ final class DialpadKey extends LinearLayout {
         view.setPadding(0, 0, 0, 0);
         view.setIncludeFontPadding(false);
         view.setSingleLine(false);
-        view.setLines(lines);
+        view.setLines(1);
         view.setHorizontallyScrolling(false);
         view.setFocusable(false);
         view.setClickable(false);
         view.setLongClickable(false);
-        // The containing key announces its digit and both alphabets as one control.
+        // The containing key announces the digit once and owns all touch actions.
         view.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         return view;
     }

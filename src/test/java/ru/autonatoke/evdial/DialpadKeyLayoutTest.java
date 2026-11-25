@@ -33,9 +33,6 @@ import static org.junit.Assert.*;
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public final class DialpadKeyLayoutTest {
     private static final String DIGITS = "123456789*0#";
-    private static final String[] RU = {"", "АБВГ\nABC", "ДЕЖЗ\nDEF", "ИЙКЛ\nGHI",
-            "МНОП\nJKL", "РСТУ\nMNO", "ФХЦЧ\nPQRS", "ШЩЪЫ\nTUV", "ЬЭЮЯ\nWXYZ", "", "+", ""};
-    private static final String[] EN = {"", "ABC", "DEF", "GHI", "JKL", "MNO", "PQRS", "TUV", "WXYZ", "", "+", ""};
     private final int screenWidthDp;
     private final float fontScale;
     private final int profilePercent;
@@ -60,7 +57,7 @@ public final class DialpadKeyLayoutTest {
     }
 
     @Test
-    public void completeDigitsAndAlphabetsFitMeasuredKeys() throws Exception {
+    public void onlySingleCenteredDigitsFillMeasuredKeys() throws Exception {
         // Create the plain application first: lazy creation must not reset fontScale.
         Application application = RuntimeEnvironment.getApplication();
         RuntimeEnvironment.setQualifiers((russian ? "ru-rRU" : "en-rUS")
@@ -83,7 +80,6 @@ public final class DialpadKeyLayoutTest {
         grid.setPadding(dp(context, 12), dp(context, 4), dp(context, 12), dp(context, 4));
         grid.setBackgroundColor(UiProfiles.active(context).base);
         List<DialpadKey> keys = new ArrayList<>();
-        String[] legends = russian ? RU : EN;
         for (int row = 0; row < 4; row++) {
             LinearLayout line = new LinearLayout(context);
             line.setGravity(Gravity.CENTER);
@@ -96,10 +92,8 @@ public final class DialpadKeyLayoutTest {
                 LinearLayout.LayoutParams column = new LinearLayout.LayoutParams(0, -2, 1f);
                 column.setMargins(dp(context, 3), dp(context, 3), dp(context, 3), dp(context, 3));
                 line.addView(slot, column);
-                DialpadKey key = new DialpadKey(context, DIGITS.charAt(index), legends[index],
-                        UiProfiles.type(context, compact ? 28 : 32),
-                        UiProfiles.type(context, 10),
-                        UiProfiles.text(context), UiProfiles.muted(context));
+                DialpadKey key = new DialpadKey(context, DIGITS.charAt(index),
+                        UiProfiles.type(context, compact ? 28 : 32), UiProfiles.text(context));
                 GradientDrawable oval = new GradientDrawable();
                 oval.setShape(GradientDrawable.OVAL);
                 oval.setColor(UiProfiles.keypad(context));
@@ -126,22 +120,30 @@ public final class DialpadKeyLayoutTest {
             assertEquals(description + " width", diameter, key.getWidth());
             assertEquals(description + " height", diameter, key.getHeight());
             assertInside((LinearLayout) key.getParent(), key, description + " inside column");
+            assertEquals(description + " no alphabet or placeholder row", 1, key.getChildCount());
+            assertSame(description + " only child is the digit", key.digitView, key.getChildAt(0));
             assertInside(key, key.digitView, description + " digit area");
-            assertInside(key, key.legendView, description + " guide area");
-            assertTrue(description + " areas must not overlap",
-                    key.digitView.getBottom() <= key.legendView.getTop());
+            assertEquals(description + " digit uses full content width",
+                    key.getWidth() - key.getPaddingLeft() - key.getPaddingRight(), key.digitView.getWidth());
+            assertEquals(description + " digit uses full content height",
+                    key.getHeight() - key.getPaddingTop() - key.getPaddingBottom(), key.digitView.getHeight());
+            assertEquals(description + " digit area centered horizontally",
+                    key.getWidth(), key.digitView.getLeft() + key.digitView.getRight());
+            assertEquals(description + " digit area centered vertically",
+                    key.getHeight(), key.digitView.getTop() + key.digitView.getBottom());
             assertEquals(description + " digit contents", String.valueOf(DIGITS.charAt(index)),
                     key.digitView.getText().toString());
+            assertEquals(description + " one accessible parent label", String.valueOf(DIGITS.charAt(index)),
+                    key.getContentDescription().toString());
+            assertEquals(description + " child has no duplicate accessibility label",
+                    View.IMPORTANT_FOR_ACCESSIBILITY_NO, key.digitView.getImportantForAccessibility());
+            assertFalse(description + " digit must not consume taps", key.digitView.isClickable());
+            assertFalse(description + " digit must not consume long press", key.digitView.isLongClickable());
+            assertEquals(description + " centered text gravity", Gravity.CENTER, key.digitView.getGravity());
             assertTextFits(key.digitView, 1, description + " digit");
             int actualBaseline = key.digitView.getTop() + key.digitView.getBaseline();
             if (baseline < 0) baseline = actualBaseline;
             assertEquals(description + " consistent digit baseline", baseline, actualBaseline);
-            assertEquals(description + " alphabet contents", legends[index], key.legendView.getText().toString());
-            assertEquals(description + " reserve guide area", View.VISIBLE, key.legendView.getVisibility());
-            assertTrue(description + " guide height", key.legendView.getHeight() > 0);
-            if (!legends[index].isEmpty()) {
-                assertTextFits(key.legendView, legends[index].contains("\n") ? 2 : 1, description + " alphabet");
-            }
         }
     }
 
@@ -169,6 +171,8 @@ public final class DialpadKeyLayoutTest {
         assertEquals(label + " no horizontal scroll", 0, view.getScrollX());
         assertEquals(label + " no vertical scroll", 0, view.getScrollY());
         int baselineOffset = view.getBaseline() - layout.getLineBaseline(0);
+        assertEquals(label + " text block centered vertically", view.getHeight() / 2f,
+                baselineOffset + layout.getHeight() / 2f, 1f);
         Rect ink = new Rect();
         for (int line = 0; line < lines; line++) {
             assertEquals(label + " no ellipsis on line " + line, 0, layout.getEllipsisCount(line));
@@ -177,6 +181,8 @@ public final class DialpadKeyLayoutTest {
                     layout.getLineWidth(line) <= width + .5f);
             assertTrue(label + " line starts inside content", layout.getLineLeft(line) >= -.5f);
             assertTrue(label + " line ends inside content", layout.getLineRight(line) <= width + .5f);
+            assertEquals(label + " text centered horizontally", width / 2f,
+                    (layout.getLineLeft(line) + layout.getLineRight(line)) / 2f, 1f);
             int start = layout.getLineStart(line), end = layout.getLineEnd(line);
             String text = view.getText().subSequence(start, end).toString().replace("\n", "");
             view.getPaint().getTextBounds(text, 0, text.length(), ink);
