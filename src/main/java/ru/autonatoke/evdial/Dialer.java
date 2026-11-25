@@ -119,7 +119,9 @@ public class Dialer extends Activity {
   LinearLayout numberField=new LinearLayout(this);
   numberField.setBaselineAligned(false);
   numberField.setGravity(Gravity.CENTER_VERTICAL);
-  numberField.addView(number,new LinearLayout.LayoutParams(0,-2,1));
+  // Width fitting changes the glyph size, never the height of the idle screen.
+  int numberHeight=Math.max(dp(50),singleLineHeight(number));
+  numberField.addView(number,new LinearLayout.LayoutParams(0,-1,1));
    TextView inlineErase=label("⌫",26,FG);
    inlineErase.setGravity(Gravity.CENTER);
    inlineErase.setContentDescription("Удалить цифру");
@@ -134,10 +136,10 @@ public class Dialer extends Activity {
   numberMenu.setGravity(Gravity.CENTER);
   numberMenu.setContentDescription("Действия с номером");
   numberMenu.setBackground(ElectricUi.buttonSurface(this,18));
-  numberMenu.setVisibility(View.GONE);
+  numberMenu.setVisibility(View.INVISIBLE);
   numberMenu.setOnClickListener(v->showNumberMenu());
   numberField.addView(numberMenu,box(48,48));
-  idleCard.addView(numberField,box(-1,-2));
+  idleCard.addView(numberField,new LinearLayout.LayoutParams(-1,numberHeight));
   if(state!=null)number.setText(state.getString("number",""));
   else if(phone.active!=null)number.setText(phone.active.getRemoteAddress().getUsername());
   if(state==null&&phone.active==null)importNumber(getIntent());
@@ -145,7 +147,10 @@ public class Dialer extends Activity {
   detail=label("",13,MUTED);
   detail.setGravity(Gravity.CENTER);
   detail.setPadding(0,dp(2),0,dp(3));
-  idleCard.addView(detail,box(-1,-2));
+  detail.setSingleLine(true);
+  detail.setEllipsize(android.text.TextUtils.TruncateAt.END);
+  detail.setVisibility(View.INVISIBLE);
+  idleCard.addView(detail,new LinearLayout.LayoutParams(-1,singleLineHeight(detail)));
   status=label("",12,MUTED);
   status.setGravity(Gravity.CENTER);
   status.setPadding(dp(4),dp(1),dp(4),dp(3));
@@ -196,11 +201,6 @@ public class Dialer extends Activity {
   keypad.setPadding(0,dp(4),0,dp(3));
   body.addView(keypad,box(-1,-2));
   String chars="123456789*0#";
-  boolean russian="ru".equals(getResources().getConfiguration().getLocales().get(0).getLanguage());
-  String[] legends=russian
-     ?new String[]{"","АБВГ\nABC","ДЕЖЗ\nDEF","ИЙКЛ\nGHI","МНОП\nJKL","РСТУ\nMNO",
-        "ФХЦЧ\nPQRS","ШЩЪЫ\nTUV","ЬЭЮЯ\nWXYZ","","+",""}
-     :new String[]{"","ABC","DEF","GHI","JKL","MNO","PQRS","TUV","WXYZ","","+",""};
   for(int r=0;r<4;r++){
    LinearLayout line=new LinearLayout(this);
    line.setGravity(Gravity.CENTER);
@@ -210,15 +210,14 @@ public class Dialer extends Activity {
     char ch=chars.charAt(i);
     LinearLayout slot=new LinearLayout(this);
     slot.setGravity(Gravity.CENTER);
-    DialpadKey key=new DialpadKey(this,ch,legends[i],UiProfiles.type(this,compact?28:32),
-            UiProfiles.type(this,10),UiProfiles.text(this),UiProfiles.muted(this));
+    DialpadKey key=new DialpadKey(this,ch,UiProfiles.type(this,compact?28:32),UiProfiles.text(this));
     int circle=compact?72:80;
     GradientDrawable round=new GradientDrawable();
     round.setShape(GradientDrawable.OVAL);
     round.setColor(UiProfiles.keypad(this));
     round.setStroke(dp(1),UiProfiles.opacity(UiProfiles.secondary(this),45));
     key.setBackground(new RippleDrawable(ColorStateList.valueOf(UiProfiles.opacity(UiProfiles.accent(this),25)),round,null));
-    key.setContentDescription(ch+(legends[i].isEmpty()?"":" "+legends[i].replace('\n',' ')));
+    key.setContentDescription(ch=='0'?"0. Удерживайте для плюса":String.valueOf(ch));
     key.setOnTouchListener((v,event)->{if(event.getAction()==MotionEvent.ACTION_DOWN)v.setAlpha(.76f);else if(event.getAction()==MotionEvent.ACTION_UP||event.getAction()==MotionEvent.ACTION_CANCEL)v.setAlpha(1f);return false;});
     key.setOnClickListener(v->{
      if(phone.active==null)insert(""+ch);
@@ -239,7 +238,13 @@ public class Dialer extends Activity {
   body.addView(idleActions,box(-1,-2));
   action=button("Позвонить",22,UiProfiles.accent(this),UiProfiles.active(this).base);
   action.setTypeface(Typeface.create("sans-serif",Typeface.BOLD));
-  action.setMinHeight(dp(58));action.setPadding(dp(6),dp(8),dp(6),dp(8));idleActions.addView(action,new LinearLayout.LayoutParams(0,-2,1));
+  action.setMinHeight(dp(58));action.setPadding(dp(6),dp(8),dp(6),dp(8));
+  action.setSingleLine(true);
+  action.setHorizontallyScrolling(false);
+  int actionHeight=Math.max(dp(58),singleLineHeight(action));
+  action.setAutoSizeTextTypeUniformWithConfiguration(dp(12),Math.max(dp(12),Math.round(action.getTextSize())),1,
+          android.util.TypedValue.COMPLEX_UNIT_PX);
+  idleActions.addView(action,new LinearLayout.LayoutParams(0,actionHeight,1));
   erase=button("",20,CARD,FG);
   icon(erase,R.drawable.ev_erase,FG,23);
   erase.setPadding(dp(17),0,0,0);
@@ -271,7 +276,7 @@ public class Dialer extends Activity {
     fitNumber(numberSp);
     if(phone.active==null)updateCallLabel(sim,phone.ready());
     updateNumberMenu();
-    if(phone.active==null&&!s.toString().equals(lookupNumber)){knownName="";lookupNumber="";detail.setVisibility(View.GONE);}
+    if(phone.active==null&&!s.toString().equals(lookupNumber)){knownName="";lookupNumber="";detail.setVisibility(View.INVISIBLE);}
     scheduleSmartSearch();
    }
    public void afterTextChanged(android.text.Editable e){}
@@ -322,7 +327,7 @@ public class Dialer extends Activity {
   smartPanel.setOrientation(LinearLayout.VERTICAL);
   smartPanel.setPadding(dp(10),dp(5),dp(10),dp(5));
   smartPanel.setBackground(shape(UiProfiles.panel(this),16));
-  smartPanel.setVisibility(View.GONE);
+  smartPanel.setVisibility(View.INVISIBLE);
   LinearLayout.LayoutParams panelSize=box(-1,-2);
   panelSize.topMargin=dp(5);panelSize.bottomMargin=dp(5);
   body.addView(smartPanel,panelSize);
@@ -352,7 +357,32 @@ public class Dialer extends Activity {
   smartMore.setGravity(Gravity.CENTER_VERTICAL);
   smartMore.setPadding(dp(8),dp(3),dp(8),dp(5));
   smartMore.setMinHeight(dp(36));
-  smartPanel.addView(smartMore,box(-1,-2));
+  smartMore.setSingleLine(true);
+  smartMore.setEllipsize(android.text.TextUtils.TruncateAt.END);
+  // Reserve both result lines and the More row, including while filtering.
+  int titleHeight=singleLineHeight(smartTitle),numberHeight=singleLineHeight(smartNumber);
+  smartTitle.getLayoutParams().height=titleHeight;
+  smartNumber.getLayoutParams().height=numberHeight;
+  int primaryHeight=Math.max(dp(48),titleHeight+numberHeight)
+          +smartPrimary.getPaddingTop()+smartPrimary.getPaddingBottom();
+  smartPrimary.getLayoutParams().height=primaryHeight;
+  int moreHeight=Math.max(dp(36),singleLineHeight(smartMore));
+  smartPanel.addView(smartMore,new LinearLayout.LayoutParams(-1,moreHeight));
+  panelSize.height=primaryHeight+moreHeight+smartPanel.getPaddingTop()+smartPanel.getPaddingBottom();
+  clearSmartSuggestions();
+ }
+ private int singleLineHeight(TextView view){
+  android.graphics.Paint.FontMetricsInt metrics=view.getPaint().getFontMetricsInt();
+  return metrics.bottom-metrics.top+view.getCompoundPaddingTop()+view.getCompoundPaddingBottom();
+ }
+ private void clearSmartSuggestions(){
+  smartMatches=null;
+  if(smartPanel==null)return;
+  // Invisible reserves the slot; removing listeners also prevents stale programmatic clicks.
+  smartPanel.setVisibility(phone.active!=null?View.GONE:View.INVISIBLE);
+  smartPrimary.setOnClickListener(null);smartPrimary.setClickable(false);smartPrimary.setEnabled(false);
+  smartInfo.setOnClickListener(null);smartInfo.setClickable(false);smartInfo.setEnabled(false);
+  smartMore.setOnClickListener(null);smartMore.setClickable(false);smartMore.setEnabled(false);
  }
  private void loadSmartIndex(){
   if(smartWorker.isShutdown())return;
@@ -368,9 +398,8 @@ public class Dialer extends Activity {
  }
  private void scheduleSmartSearch(){
   if(smartPanel==null||number==null)return;
-  // Previous suggestions must not dial a stale number while the new query is filtering.
-  smartPanel.setVisibility(View.GONE);
-  smartMatches=null;
+  // Keep the keypad stationary without letting an old result dial during filtering.
+  clearSmartSuggestions();
   if(smartPending!=null)smartUi.removeCallbacks(smartPending);
   final int ticket=++smartQueryGeneration;
   if(!smartResumed)return;
@@ -397,15 +426,18 @@ public class Dialer extends Activity {
  }
  private void renderSmartSuggestions(SmartDialSearch.Matches results){
   if(smartPanel==null)return;
-  if(phone.active!=null){smartPanel.setVisibility(View.GONE);return;}
-  smartPanel.setVisibility(View.VISIBLE);
+  // Bind even during a call so returning to idle never reveals disabled, stale actions.
+  smartPanel.setVisibility(phone.active!=null?View.GONE:View.VISIBLE);
+  smartPrimary.setEnabled(true);
+  smartInfo.setEnabled(results.total>0);
+  smartMore.setEnabled(results.isRecent&&results.total>0||results.total>1);
   if(results.total==0){
    smartTitle.setText(results.isRecent?"Недавние звонки":"Совпадений не найдено");
    smartNumber.setText(results.isRecent?"История SIM и SIP":"Попробуйте другой номер или имя");
    smartPrimary.setContentDescription(results.isRecent?"Открыть последние звонки":"Поиск в адресной книге");
-   smartInfo.setVisibility(View.GONE);
+   smartInfo.setVisibility(View.INVISIBLE);
    smartPrimary.setOnClickListener(v->openDirectory(results.isRecent,false,results.isRecent?null:number.getText().toString()));
-   smartMore.setVisibility(View.GONE);
+   smartMore.setVisibility(View.INVISIBLE);
    return;
   }
   SmartDialSearch.Entry first=results.items.get(0).entry;
@@ -425,7 +457,7 @@ public class Dialer extends Activity {
    smartMore.setVisibility(View.VISIBLE);
    smartMore.setOnClickListener(v->showSmartMatches(results));
   }else{
-   smartMore.setVisibility(View.GONE);
+   smartMore.setVisibility(View.INVISIBLE);
   }
  }
  private void applySmartSelection(SmartDialSearch.Entry candidate,boolean call){
@@ -900,8 +932,7 @@ public class Dialer extends Activity {
   smartQueryGeneration++;smartLoadGeneration++;
   if(smartPending!=null)smartUi.removeCallbacks(smartPending);
   dismissSmartMatches();
-  if(smartPanel!=null)smartPanel.setVisibility(View.GONE);
-  smartMatches=null;
+  clearSmartSuggestions();
   super.onPause();
  }
  @Override protected void onDestroy(){
@@ -932,7 +963,7 @@ public class Dialer extends Activity {
   boolean minimal=UiProfiles.MINIMAL.equals(UiProfiles.id(this));
    if(quickBar!=null)quickBar.setVisibility(busy||minimal||!servicesExpanded?View.GONE:View.VISIBLE);
    header.setVisibility(busy||minimal?View.GONE:View.VISIBLE);idleCard.setVisibility(busy?View.GONE:View.VISIBLE);
-   if(smartPanel!=null)smartPanel.setVisibility(busy?View.GONE:(smartMatches!=null?View.VISIBLE:View.GONE));
+   if(smartPanel!=null)smartPanel.setVisibility(busy?View.GONE:(smartMatches!=null?View.VISIBLE:View.INVISIBLE));
   idleActions.setVisibility(busy?View.GONE:View.VISIBLE);routes.setVisibility(busy||minimal?View.GONE:View.VISIBLE);
   navigation.setVisibility(busy||minimal?View.GONE:View.VISIBLE);
   callInfo.setVisibility(busy?View.VISIBLE:View.GONE);batterySlot.setVisibility(busy?View.VISIBLE:View.GONE);
@@ -975,7 +1006,7 @@ public class Dialer extends Activity {
        UiProfiles.opacity(UiProfiles.accent(this),Math.max(0,buttonOpacity-14)),UiProfiles.accent(this),24));
    action.setTextColor(buttonOpacity>=65?UiProfiles.active(this).base:UiProfiles.text(this));
    detail.setText(lookupNumber.equals(number.getText().toString())?knownName:"");
-   detail.setVisibility(detail.length()>0?View.VISIBLE:View.GONE);
+   detail.setVisibility(detail.length()>0?View.VISIBLE:View.INVISIBLE);
   }
   int lockFlags=WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED|WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON;
   if(incoming)getWindow().addFlags(lockFlags);
@@ -999,7 +1030,7 @@ public class Dialer extends Activity {
  private void updateNumberMenu(){
   boolean available=!callBlocksNumberActions()&&(number.length()==0||!actionNumber().isEmpty());
   numberMenu.setContentDescription(number.length()==0?"Быстрый набор":"Действия с номером");
-  numberMenu.setVisibility(available?View.VISIBLE:View.GONE);
+  numberMenu.setVisibility(available?View.VISIBLE:View.INVISIBLE);
  }
  private void showNumberMenu(){
   String dialed=actionNumber();

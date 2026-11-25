@@ -29,7 +29,7 @@ short=method(contacts,"private TextView contactQuickAction")
 numbers=method(contacts,"private static boolean hasSameContactNumber")
 history=method(contacts,"private String briefCallDescription")
 checks={
- "version_17":"versionCode 17; versionName '0.3.3-rc3'" in gradle,
+ "version_18":"versionCode 18; versionName '0.3.3-rc4'" in gradle,
  "settings_are_grouped":'titles={"ОФОРМЛЕНИЕ","ЗВОНКИ И ЛИНИИ","ПОВЕДЕНИЕ","ПРИЛОЖЕНИЕ"}' in cfg,
  "settings_touch_rows":"row.setMinimumHeight(dp(50))" in cfg,
  "settings_no_large_buttons":"item.setMinHeight(dp(60))" not in cfg,

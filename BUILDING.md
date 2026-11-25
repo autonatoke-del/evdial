@@ -20,12 +20,17 @@ python3 tests/ModernUxSourceChecks.py
 python3 tests/run_jvm_regressions.py
 # Available from v0.3.2-rc1:
 python3 tests/CompactUiSourceChecks.py
+python3 tests/SmartDialUiSourceChecks.py
 gradle assembleRelease lintRelease # unsigned release build, do not publish it
 # Native Android keypad layout, widths 320/360/393dp and font scales up to 200%:
 gradle testDebugUnitTest --tests ru.autonatoke.evdial.DialpadKeyLayoutTest
+# Real Dialer positions through pending/empty/one/many search results and edits:
+gradle testDebugUnitTest --tests ru.autonatoke.evdial.DialerTypingLayoutTest
 ```
 
 The keypad layout suite uses Robolectric Native Graphics on Android API 34 and saves renderings under `build/reports/keypad/`. It creates the real keypad component with a plain Android Application, without starting SIP or placing calls.
+
+The typing layout suite runs the actual Dialer Activity with synthetic local contacts. It checks the keypad, number row, call button and scroll position before and after asynchronous searches, including long numbers and deletion. A test application prevents telephony and service activation; stale result actions must be unavailable while a new search is pending.
 
 The source, JVM and keypad layout tests do NOT prove functional telephony or physical device UI. Test Android default dialer role, SIM/SIP incoming and outgoing calls, double-SIM routing, lock-screen, audio routes, contact permission handling, vCard import/export and updater behavior on Xiaomi/Samsung before a production rollout.
 
