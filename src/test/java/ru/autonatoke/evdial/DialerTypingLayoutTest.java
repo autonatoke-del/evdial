@@ -1,10 +1,14 @@
 package ru.autonatoke.evdial;
 
 import android.content.Intent;
+import android.app.Dialog;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Rect;
 import android.os.Looper;
+import android.text.Layout;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -30,6 +34,7 @@ import org.robolectric.annotation.Config;
 import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.annotation.LooperMode;
 import org.robolectric.util.ReflectionHelpers;
+import org.robolectric.shadows.ShadowDialog;
 import static org.junit.Assert.*;
 import static org.robolectric.Shadows.shadowOf;
 
@@ -62,43 +67,52 @@ public final class DialerTypingLayoutTest {
 
     private final int widthDp, heightDp, profilePercent;
     private final float fontScale;
-    private final boolean preScrolled;
+    private final String theme;
     private Dialer activity;
-    private View decor;
+    private View decor, appRoot;
     private ScrollView scroll;
     private ExecutorService worker;
     private Bitmap bitmap;
     private Geometry baseline;
 
-    @Parameters(name = "{0}x{1}dp,font={2},profile={3}%,scrolled={4}")
+    @Parameters(name = "{0}x{1}dp,font={2},profile={3}%,theme={4}")
     public static Collection<Object[]> configurations() {
         return Arrays.asList(new Object[][]{
-                {320, 640, 1f, 100, false},
-                {360, 800, 1f, 100, false},
-                {393, 800, 1f, 125, false},
-                {320, 640, 1.3f, 125, false},
-                {393, 800, 2f, 125, false},
-                {320, 640, 1f, 100, true},
-                {360, 640, 1.3f, 125, true},
-                {393, 800, 2f, 150, true}
+                {320, 568, 1f, 100, UiProfiles.EV},
+                {320, 640, 1f, 100, UiProfiles.EV},
+                {360, 640, 1f, 100, UiProfiles.RUBINA},
+                {360, 740, 1f, 100, UiProfiles.EV},
+                {393, 800, 1f, 100, UiProfiles.MINIMAL},
+                {393, 873, 1f, 100, UiProfiles.EV},
+                {320, 568, 1.3f, 125, UiProfiles.EV},
+                {320, 640, 2f, 150, UiProfiles.EV},
+                {360, 640, 1.3f, 150, UiProfiles.EV},
+                {360, 740, 2f, 150, UiProfiles.EV},
+                {393, 800, 1.3f, 125, UiProfiles.EV},
+                {393, 873, 2f, 150, UiProfiles.EV}
         });
     }
 
-    public DialerTypingLayoutTest(int width, int height, float font, int profile, boolean scrolled) {
+    public DialerTypingLayoutTest(int width, int height, float font, int profile, String theme) {
         widthDp = width;
         heightDp = height;
         fontScale = font;
         profilePercent = profile;
-        preScrolled = scrolled;
+        this.theme = theme;
     }
 
     @Test
-    public void typingAndResultChangesKeepTheKeypadAndScrollStationary() throws Exception {
+    public void dialingControlsStayVisibleAndStableAtEverySupportedSize() throws Exception {
         Phone app = (Phone) RuntimeEnvironment.getApplication();
         RuntimeEnvironment.setQualifiers("ru-rRU-w" + widthDp + "dp-h" + heightDp + "dp-xhdpi");
         RuntimeEnvironment.setFontScale(fontScale);
-        UiProfiles.select(app, UiProfiles.EV);
+        UiProfiles.select(app, theme);
         UiProfiles.set(app, UiProfiles.SCALE, profilePercent);
+        // Upgrade from RC4 can retain this preference; it must not recreate an inline EV block.
+        String className = Dialer.class.getName(), packageName = app.getPackageName();
+        String preferenceName = className.startsWith(packageName + ".")
+                ? className.substring(packageName.length() + 1) : className;
+        app.getSharedPreferences(preferenceName, 0).edit().putBoolean("showEvServices", true).apply();
         // ACTION_DIAL avoids launcher-only role prompts and startup tab selection.
         ActivityController<Dialer> controller = Robolectric.buildActivity(Dialer.class,
                 new Intent(Intent.ACTION_DIAL));
@@ -107,7 +121,8 @@ public final class DialerTypingLayoutTest {
             assertEquals(fontScale, activity.getResources().getConfiguration().fontScale, .001f);
             assertEquals(widthDp, activity.getResources().getConfiguration().screenWidthDp);
             decor = activity.getWindow().getDecorView();
-            scroll = (ScrollView) activity.body.getParent();
+            appRoot = activity.findViewById(android.R.id.custom);
+            scroll = firstScrollView(appRoot);
             worker = ReflectionHelpers.getField(activity, "smartWorker");
             bitmap = Bitmap.createBitmap(dp(widthDp), dp(heightDp), Bitmap.Config.ARGB_8888);
 
@@ -123,28 +138,19 @@ public final class DialerTypingLayoutTest {
             activity.number.requestFocus();
             activity.number.setSelection(activity.number.length());
             layoutAndDraw();
-            // The small-screen case puts the number field offscreen while the keypad is reachable.
-            int initialScroll = !preScrolled ? 0 : widthDp == 320 ? activity.body.getHeight() : dp(60);
-            scroll.scrollTo(0, initialScroll);
-            layoutAndDraw();
-            if (preScrolled) assertTrue("Fixture must start below the top", scroll.getScrollY() > 0);
-            else assertEquals("Fixture starts at the top", 0, scroll.getScrollY());
-            if (preScrolled && widthDp == 320) {
-                int[] fieldPosition = new int[2], viewportPosition = new int[2];
-                activity.number.getLocationOnScreen(fieldPosition);
-                scroll.getLocationOnScreen(viewportPosition);
-                assertTrue("Near-bottom fixture must put the entire number field above the viewport",
-                        fieldPosition[1] + activity.number.getHeight() < viewportPosition[1]);
-            }
+            // The complete number/grid/call pane must fit before the user scrolls anything.
+            assertDialingControlsVisible("initial viewport");
             baseline = new Geometry(activity, scroll);
+            assertUpperScrollingDoesNotMoveDialingControls();
+            assertHeaderPanelsDoNotMoveDialingControls();
 
             // A previously resolved name must not add/remove a row on the next edit.
             activity.lookupNumber = activity.number.getText().toString();
             activity.knownName = "Синтетический контакт с длинным именем";
             activity.refresh();
-            assertEquals("Known name is displayed", View.VISIBLE, activity.detail.getVisibility());
             layoutAndDraw();
             baseline.assertUnchanged(new Geometry(activity, scroll), "known name becomes visible");
+            assertDialingControlsVisible("known name");
 
             press('7');
             resolvedAcrossBusyCall(3, false, "many results after call-state race");
@@ -179,7 +185,12 @@ public final class DialerTypingLayoutTest {
             clear();
             resolved(2, true, "return to recents");
             renderPreview();
-            if (preScrolled && widthDp == 320) assertAccessibilityCanRevealNumber();
+            // Already-visible number fields need no ancestor scroll for accessibility reveal.
+            activity.number.performAccessibilityAction(
+                    AccessibilityNodeInfo.AccessibilityAction.ACTION_SHOW_ON_SCREEN.getId(), null);
+            layoutAndDraw();
+            baseline.assertUnchanged(new Geometry(activity, scroll), "accessibility reveal");
+            assertDialingControlsVisible("accessibility reveal");
         } finally {
             if (activity != null) controller.pause().stop().destroy();
             if (bitmap != null) bitmap.recycle();
@@ -215,23 +226,17 @@ public final class DialerTypingLayoutTest {
     }
 
     private void pending(String phase) throws Exception {
-        assertEquals(phase + ": pending suggestions retain their space",
-                View.INVISIBLE, activity.smartPanel.getVisibility());
         assertFalse(phase + ": stale primary action removed", activity.smartPrimary.performClick());
         assertFalse(phase + ": stale contact action removed", activity.smartInfo.performClick());
         assertFalse(phase + ": stale More action removed", activity.smartMore.performClick());
         layoutAndDraw();
         baseline.assertUnchanged(new Geometry(activity, scroll), phase + " / pending");
-        assertEquals(phase + ": editing hides the known name without collapsing its row",
-                View.INVISIBLE, activity.detail.getVisibility());
+        assertDialingControlsVisible(phase + " / pending");
         // A line-registration observer refresh can arrive during the search debounce.
         activity.refresh();
-        assertEquals(phase + ": observer refresh preserves pending slot",
-                View.INVISIBLE, activity.smartPanel.getVisibility());
-        assertEquals(phase + ": observer does not restore the stale name",
-                View.INVISIBLE, activity.detail.getVisibility());
         layoutAndDraw();
         baseline.assertUnchanged(new Geometry(activity, scroll), phase + " / pending observer refresh");
+        assertDialingControlsVisible(phase + " / pending observer refresh");
     }
 
     private void resolved(int total, boolean recent, String phase) throws Exception {
@@ -244,6 +249,7 @@ public final class DialerTypingLayoutTest {
                 activity.smartInfo.getVisibility());
         layoutAndDraw();
         baseline.assertUnchanged(new Geometry(activity, scroll), phase + " / resolved");
+        assertDialingControlsVisible(phase + " / resolved");
     }
 
     private void resolvedAcrossBusyCall(int total, boolean recent, String phase) throws Exception {
@@ -274,9 +280,10 @@ public final class DialerTypingLayoutTest {
         baseline.assertLocalUnchanged(new Geometry(activity, scroll), phase + " / restored");
         // Call mode intentionally reflows the viewport. Restore this fixture's scroll before
         // continuing the strict screen-position checks for ordinary idle typing.
-        scroll.scrollTo(0, baseline.scrollY);
+        if (scroll != null) scroll.scrollTo(0, baseline.scrollY);
         layoutAndDraw();
         baseline.assertUnchanged(new Geometry(activity, scroll), phase + " / idle fixture restored");
+        assertDialingControlsVisible(phase + " / idle fixture restored");
     }
 
     private void assertMatches(int total, boolean recent) {
@@ -301,18 +308,181 @@ public final class DialerTypingLayoutTest {
         }
     }
 
-    private void assertAccessibilityCanRevealNumber() {
-        assertTrue("Explicit accessibility reveal remains supported",
-                activity.number.performAccessibilityAction(
-                        AccessibilityNodeInfo.AccessibilityAction.ACTION_SHOW_ON_SCREEN.getId(), null));
+    private void assertUpperScrollingDoesNotMoveDialingControls() {
+        if (scroll == null) return;
+        scroll.scrollTo(0, Integer.MAX_VALUE);
         layoutAndDraw();
-        int[] fieldPosition = new int[2], viewportPosition = new int[2];
-        activity.number.getLocationOnScreen(fieldPosition);
-        scroll.getLocationOnScreen(viewportPosition);
-        assertTrue("Accessibility reveals the full number field",
-                fieldPosition[1] >= viewportPosition[1] - 1
-                && fieldPosition[1] + activity.number.getHeight()
-                <= viewportPosition[1] + scroll.getHeight() + 1);
+        baseline.assertUnchanged(new Geometry(activity, scroll), "upper content scrolled to bottom");
+        assertDialingControlsVisible("upper content scrolled to bottom");
+        scroll.scrollTo(0, 0);
+        layoutAndDraw();
+        baseline.assertUnchanged(new Geometry(activity, scroll), "upper content scrolled to top");
+        assertDialingControlsVisible("upper content scrolled to top");
+    }
+
+    private void assertHeaderPanelsDoNotMoveDialingControls() {
+        View picker = findDescription(appRoot, "Выбрать линию вызова");
+        assertNotNull("Compact line selector is discoverable", picker);
+        assertTrue("Line selector remains above the number", bounds(picker).bottom <= bounds(activity.number).top);
+        assertTrue("Line selector leaves room for the header actions", picker.getWidth() < appRoot.getWidth() * .65f);
+        assertTrue("Real line-selector click", picker.performClick());
+        Dialog dialog = ShadowDialog.getLatestDialog();
+        assertNotNull("Line choice opens a separate panel", dialog);
+        assertTrue("Line choice shown", dialog.isShowing());
+        layoutAndDraw();
+        baseline.assertUnchanged(new Geometry(activity, scroll), "line chooser open");
+        View sip = dialogChoice(dialog.getWindow().getDecorView(), "SIP");
+        assertNotNull("SIP remains selectable", sip);
+        assertTrue("SIP choice click", sip.performClick());
+        assertFalse("SIP route selected without starting the engine", activity.sim);
+        assertEquals("SIP choice persisted", "sip", activity.getPreferences(0).getString("route", ""));
+        layoutAndDraw();
+        baseline.assertUnchanged(new Geometry(activity, scroll), "SIP selected");
+        assertDialingControlsVisible("SIP selected");
+
+        assertTrue("Reopen line selector", picker.performClick());
+        dialog = ShadowDialog.getLatestDialog();
+        assertNotNull(dialog);
+        View sim = dialogChoice(dialog.getWindow().getDecorView(), "SIM");
+        assertNotNull("SIM remains selectable", sim);
+        assertTrue("SIM choice click", sim.performClick());
+        assertTrue("SIM route restored", activity.sim);
+        assertEquals("SIM choice persisted", "sim", activity.getPreferences(0).getString("route", ""));
+        layoutAndDraw();
+        baseline.assertUnchanged(new Geometry(activity, scroll), "SIM restored");
+        assertDialingControlsVisible("SIM restored");
+
+        View services = findDescription(appRoot, "Сервисы EV");
+        assertNotNull("EV services remain discoverable", services);
+        int bodyChildren = activity.body.getChildCount();
+        assertTrue("Real car-button click", services.performClick());
+        dialog = ShadowDialog.getLatestDialog();
+        assertNotNull("EV services open a separate panel", dialog);
+        assertTrue("EV services panel shown", dialog.isShowing());
+        assertTrue("Existing EV destinations available", clickableCount(dialog.getWindow().getDecorView()) >= 4);
+        layoutAndDraw();
+        assertEquals("EV services do not insert another inline block", bodyChildren, activity.body.getChildCount());
+        baseline.assertUnchanged(new Geometry(activity, scroll), "EV services open");
+        dialog.dismiss();
+        layoutAndDraw();
+        baseline.assertUnchanged(new Geometry(activity, scroll), "EV services closed");
+        assertDialingControlsVisible("EV services closed");
+    }
+
+    private static View findDescription(View view, String prefix) {
+        CharSequence description = view.getContentDescription();
+        if (view.isShown() && description != null && description.toString().startsWith(prefix)) return view;
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View found = findDescription(group.getChildAt(i), prefix);
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
+    private static View dialogChoice(View view, String token) {
+        if (view instanceof android.widget.TextView
+                && ((android.widget.TextView) view).getText().toString().contains(token)) {
+            View target = view;
+            while (!target.hasOnClickListeners() && target.getParent() instanceof View)
+                target = (View) target.getParent();
+            if (target.hasOnClickListeners()) return target;
+        }
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View found = dialogChoice(group.getChildAt(i), token);
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
+    private static int clickableCount(View view) {
+        int result = view.hasOnClickListeners() ? 1 : 0;
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) result += clickableCount(group.getChildAt(i));
+        }
+        return result;
+    }
+
+    private static ScrollView firstScrollView(View view) {
+        if (view instanceof ScrollView) return (ScrollView) view;
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                ScrollView found = firstScrollView(group.getChildAt(i));
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
+    private void assertDialingControlsVisible(String phase) {
+        Rect viewport = bounds(appRoot), nav = bounds(activity.navigation);
+        assertTrue(phase + ": navigation visible", activity.navigation.isShown());
+        assertTrue(phase + ": navigation inside app", nav.bottom <= viewport.bottom + 1);
+        assertFullyVisible(activity.number, viewport, nav.top, phase + ": number");
+        assertTrue(phase + ": number has a touchable height", activity.number.getHeight() >= dp(48));
+        Layout numberText = activity.number.getLayout();
+        assertNotNull(phase + ": number layout", numberText);
+        assertTrue(phase + ": number text fits its fixed-height field", numberText.getHeight()
+                <= activity.number.getHeight() - activity.number.getCompoundPaddingTop()
+                - activity.number.getCompoundPaddingBottom() + 1);
+        Rect numberCard = bounds(activity.idleCard), grid = bounds(activity.keypad);
+        assertTrue(phase + ": number immediately above keys", numberCard.bottom <= grid.top + 1
+                && grid.top - numberCard.bottom <= dp(16));
+        assertTrue(phase + ": keypad exists", activity.keypad.getChildCount() == 4);
+        for (int i = 0; i < DIGITS.length(); i++) {
+            LinearLayout row = (LinearLayout) activity.keypad.getChildAt(i / 3);
+            LinearLayout slot = (LinearLayout) row.getChildAt(i % 3);
+            DialpadKey key = (DialpadKey) slot.getChildAt(0);
+            String label = phase + ": key " + DIGITS.charAt(i);
+            assertFullyVisible(key, viewport, nav.top, label);
+            assertTrue(label + " width target", key.getWidth() >= dp(48));
+            assertTrue(label + " height target", key.getHeight() >= dp(48));
+            assertEquals(label + " numeric contents", String.valueOf(DIGITS.charAt(i)),
+                    key.digitView.getText().toString());
+            assertTextFits(key.digitView, label);
+        }
+        assertFullyVisible(activity.action, viewport, nav.top, phase + ": call button");
+        assertTrue(phase + ": call touch target", activity.action.getHeight() >= dp(48));
+        assertTrue(phase + ": call follows keypad", bounds(activity.action).top >= grid.bottom - 1);
+        assertTextFits(activity.action, phase + ": call label");
+    }
+
+    private void assertFullyVisible(View view, Rect viewport, int bottom, String phase) {
+        Rect full = bounds(view), visible = new Rect();
+        assertTrue(phase + ": shown", view.isShown());
+        assertTrue(phase + ": visible rectangle exists", view.getGlobalVisibleRect(visible));
+        assertEquals(phase + ": unclipped width", view.getWidth(), visible.width());
+        assertEquals(phase + ": unclipped height", view.getHeight(), visible.height());
+        assertTrue(phase + ": inside left/right", full.left >= viewport.left - 1
+                && full.right <= viewport.right + 1);
+        assertTrue(phase + ": above navigation", full.top >= viewport.top - 1
+                && full.bottom <= bottom + 1);
+    }
+
+    private static Rect bounds(View view) {
+        int[] position = new int[2];
+        view.getLocationOnScreen(position);
+        return new Rect(position[0], position[1], position[0] + view.getWidth(),
+                position[1] + view.getHeight());
+    }
+
+    private void assertTextFits(android.widget.TextView view, String phase) {
+        Layout layout = view.getLayout();
+        assertNotNull(phase + ": native text layout", layout);
+        assertEquals(phase + ": single line", 1, layout.getLineCount());
+        assertEquals(phase + ": full label", view.length(), layout.getLineEnd(0));
+        assertEquals(phase + ": no ellipsis", 0, layout.getEllipsisCount(0));
+        int width = view.getWidth() - view.getCompoundPaddingLeft() - view.getCompoundPaddingRight();
+        int height = view.getHeight() - view.getCompoundPaddingTop() - view.getCompoundPaddingBottom();
+        assertTrue(phase + ": text width", layout.getLineWidth(0) <= width + 1);
+        assertTrue(phase + ": text height", layout.getHeight() <= height + 1);
     }
 
     private void resolveSearch() throws Exception {
@@ -343,47 +513,53 @@ public final class DialerTypingLayoutTest {
     }
 
     private void renderPreview() throws Exception {
-        if (widthDp != 320 || fontScale != 1f || preScrolled) return;
+        boolean smallest = widthDp == 320 && heightDp == 568 && fontScale == 1f;
+        boolean typical = widthDp == 360 && heightDp == 740 && fontScale == 1f;
+        boolean enlarged = widthDp == 320 && heightDp == 640 && fontScale == 2f;
+        if (!smallest && !typical && !enlarged) return;
         String directory = System.getProperty("evdial.previewDir");
         if (directory == null || directory.isEmpty()) return;
-        File file = new File(directory, "dialer-stable-typing-320dp.webp");
+        File file = new File(directory, "dialer-responsive-" + widthDp + "x" + heightDp
+                + "-" + (enlarged ? "large" : "normal") + ".webp");
         assertTrue(file.getParentFile().isDirectory() || file.getParentFile().mkdirs());
-        int width = Math.min(393, bitmap.getWidth());
+        int width = Math.min(320, bitmap.getWidth());
         int height = Math.round(bitmap.getHeight() * width / (float) bitmap.getWidth());
         Bitmap compact = Bitmap.createScaledBitmap(bitmap, width, height, true);
         try (FileOutputStream stream = new FileOutputStream(file)) {
-            assertTrue(compact.compress(Bitmap.CompressFormat.WEBP_LOSSY, 82, stream));
+            assertTrue(compact.compress(Bitmap.CompressFormat.WEBP_LOSSY, 72, stream));
         } finally {
             if (compact != bitmap) compact.recycle();
         }
     }
 
     private static final class Geometry {
-        final int numberHeight, numberWidth, suggestionsHeight, keypadTop, callHeight, scrollY;
-        final int[] keypadScreen = new int[2], callScreen = new int[2];
+        final int numberHeight, numberWidth, keypadTop, callHeight, scrollY;
+        final int[] numberScreen = new int[2], keypadScreen = new int[2], callScreen = new int[2],
+                navigationScreen = new int[2];
 
         Geometry(Dialer dialer, ScrollView scroll) {
             numberHeight = ((View) dialer.number.getParent()).getHeight();
             numberWidth = dialer.number.getWidth();
-            suggestionsHeight = dialer.smartPanel.getHeight();
             keypadTop = dialer.keypad.getTop();
             callHeight = dialer.action.getHeight();
-            scrollY = scroll.getScrollY();
+            scrollY = scroll == null ? 0 : scroll.getScrollY();
+            dialer.number.getLocationOnScreen(numberScreen);
             dialer.keypad.getLocationOnScreen(keypadScreen);
             dialer.action.getLocationOnScreen(callScreen);
+            dialer.navigation.getLocationOnScreen(navigationScreen);
         }
 
         void assertUnchanged(Geometry now, String phase) {
             assertLocalUnchanged(now, phase);
+            assertArrayEquals(phase + ": number screen position", numberScreen, now.numberScreen);
             assertArrayEquals(phase + ": keypad screen position", keypadScreen, now.keypadScreen);
             assertArrayEquals(phase + ": call-button screen position", callScreen, now.callScreen);
-            assertEquals(phase + ": scroll position", scrollY, now.scrollY);
+            assertArrayEquals(phase + ": navigation screen position", navigationScreen, now.navigationScreen);
         }
 
         void assertLocalUnchanged(Geometry now, String phase) {
             assertEquals(phase + ": number-row height", numberHeight, now.numberHeight);
             assertEquals(phase + ": number-field width", numberWidth, now.numberWidth);
-            assertEquals(phase + ": reserved suggestions height", suggestionsHeight, now.suggestionsHeight);
             assertEquals(phase + ": keypad position in body", keypadTop, now.keypadTop);
             assertEquals(phase + ": call-button height", callHeight, now.callHeight);
         }

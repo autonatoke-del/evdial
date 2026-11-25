@@ -22,14 +22,15 @@ import org.linphone.core.*;
 public class Dialer extends Activity {
  static final int BG=0xff0b100e,CARD=0xff14232c,FG=0xfff4fcff,MUTED=0xffc0d7de,GREEN=0xff79f4a6;
  Phone phone;
- LinearLayout body,tools,keypad,navigation,header,idleCard,idleActions,callInfo,batterySlot,quickBar;
- boolean servicesExpanded;
+ LinearLayout body,tools,keypad,navigation,header,idleCard,idleActions,callInfo,batterySlot,dialPane,routeSelector;
+ ScrollView contentScroll;
+ StationSheet servicesDialog,routeDialog;
  TextView callPhase,callIdentity,callAddress,micControl,speakerControl,keysControl;
  BatteryCallControl callBattery;
  Call shownCall,awaitingMic;
  boolean sipKeysOpen, batteryRinging;
  EditText number;
- TextView status,detail,action,sipTab,simTab,erase,numberMenu,replyButton;
+ TextView action,erase,numberMenu,replyButton,routeLabel;
  LinearLayout smartPanel,smartPrimary;
  TextView smartTitle,smartNumber,smartMore,smartInfo;
  private volatile java.util.List<SmartDialSearch.Entry> smartEntries=java.util.Collections.emptyList();
@@ -47,7 +48,6 @@ public class Dialer extends Activity {
  String shownProfile;
  String shownStyle;
  Intent pendingContactShortcut;
- LinearLayout routes;
 
  // Keep SIP opt-in separate from inspecting display settings for either line.
  private static final int DISPLAY_SETTINGS=16,SIP_DISPLAY_SETTINGS=14,DISPLAY_PERMISSION=9;
@@ -66,43 +66,40 @@ public class Dialer extends Activity {
   getWindow().setStatusBarColor(UiProfiles.active(this).base);
   getWindow().setNavigationBarColor(UiProfiles.active(this).base);
   setVolumeControlStream(android.media.AudioManager.STREAM_VOICE_CALL);
-  LinearLayout root=new LinearLayout(this);
-  root.setOrientation(LinearLayout.VERTICAL);
+  DialerViewport root=new DialerViewport(this);
   root.setId(android.R.id.custom);DriveTools.background(this,root);
   setContentView(root);
 
-  ScrollView scroll=new ScrollView(this);
-  scroll.setFillViewport(true);scroll.setVerticalScrollBarEnabled(false);
-  root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
   body=new LinearLayout(this);
   body.setOrientation(LinearLayout.VERTICAL);
-  body.setGravity(Gravity.TOP);
+  body.setGravity(Gravity.BOTTOM);
   boolean largeType=getResources().getConfiguration().fontScale>=1.3f;
   boolean compact=largeType||getResources().getConfiguration().screenHeightDp<660;
-  body.setPadding(dp(12),dp(6),dp(12),dp(10));
-  scroll.addView(body);
-  header=sectionHeader(this,body);
-  headerAction(R.drawable.driver_car,"Сервисы EV: показать или скрыть",this::toggleServices);
+  body.setPadding(dp(12),0,dp(12),0);
+  header=sectionHeader(this,root);
+  sim="sim".equals(getPreferences(0).getString("route","sim"));
+  buildRouteSelector();
+  headerAction(R.drawable.driver_car,"Сервисы EV",this::showServices);
   headerAction(R.drawable.dir_search,"Найти",()->openDirectory(true,false,number.getText().toString()));
   headerAction(R.drawable.ev_settings,"Настройки",this::configure);
-  header.setMinimumHeight(dp(compact?64:76));
-  header.setPadding(dp(12),dp(8),dp(8),dp(8));
+  header.setMinimumHeight(dp(48));
+  header.setPadding(dp(8),0,dp(8),0);
+  LinearLayout.LayoutParams headerSize=new LinearLayout.LayoutParams(-1,dp(48));
+  headerSize.setMargins(dp(12),dp(4),dp(12),dp(4));header.setLayoutParams(headerSize);
   header.setBackground(new ElectricUi.Banner(this));
-   if(UiProfiles.MINIMAL.equals(UiProfiles.id(this))){
-     TextView minimalSettings=label("⚙ Настройки",13,UiProfiles.muted(this));
-     minimalSettings.setGravity(Gravity.CENTER);
-     minimalSettings.setOnClickListener(v->configure());
-     body.addView(minimalSettings,box(-1,dp(44)));
-   }
-  servicesExpanded=getPreferences(0).getBoolean("showEvServices",false);
-  updateServices();
-
+  contentScroll=new ScrollView(this);
+  contentScroll.setFillViewport(true);contentScroll.setVerticalScrollBarEnabled(false);
+  root.addView(contentScroll,new LinearLayout.LayoutParams(-1,0,1));
+  contentScroll.addView(body);
+  dialPane=new LinearLayout(this);dialPane.setOrientation(LinearLayout.VERTICAL);
+  dialPane.setPadding(dp(12),0,dp(12),0);
+  root.addView(dialPane,new LinearLayout.LayoutParams(-1,-2));
 
   idleCard=new LinearLayout(this);
   idleCard.setOrientation(LinearLayout.VERTICAL);
-  idleCard.setPadding(dp(7),dp(7),dp(7),dp(7));
+  idleCard.setPadding(dp(4),dp(2),dp(4),dp(2));
   idleCard.setBackground(glass(UiProfiles.panel(this),UiProfiles.opacity(UiProfiles.active(this).base,UiProfiles.value(this,UiProfiles.PANEL)),UiProfiles.secondary(this),22));
-  body.addView(idleCard,box(-1,-2));
+  dialPane.addView(idleCard,box(-1,52));
   number=new EditText(this){
    @Override public boolean requestRectangleOnScreen(android.graphics.Rect rectangle,boolean immediate){
     // The caret may scroll inside the field, but must not pull the dialpad offscreen.
@@ -128,15 +125,16 @@ public class Dialer extends Activity {
   number.setHint("Номер телефона");
   number.setShowSoftInputOnFocus(false);
   number.setPadding(0,dp(5),0,dp(3));
-  number.setMinHeight(dp(50));
+  number.setMinHeight(dp(48));
   LinearLayout numberField=new LinearLayout(this);
   numberField.setBaselineAligned(false);
   numberField.setGravity(Gravity.CENTER_VERTICAL);
   // Width fitting changes the glyph size, never the height of the idle screen.
-  int numberHeight=Math.max(dp(50),singleLineHeight(number));
+  int numberHeight=dp(48);
   numberField.addView(number,new LinearLayout.LayoutParams(0,-1,1));
    TextView inlineErase=label("⌫",26,FG);
    inlineErase.setGravity(Gravity.CENTER);
+   fitSingleLine(inlineErase,16);
    inlineErase.setContentDescription("Удалить цифру");
    inlineErase.setOnClickListener(v->{
      int a=Math.max(0,number.getSelectionStart()),b=Math.max(0,number.getSelectionEnd());
@@ -147,6 +145,7 @@ public class Dialer extends Activity {
 
   numberMenu=label("⋮",26,FG);
   numberMenu.setGravity(Gravity.CENTER);
+  fitSingleLine(numberMenu,16);
   numberMenu.setContentDescription("Действия с номером");
   numberMenu.setBackground(ElectricUi.buttonSurface(this,18));
   numberMenu.setVisibility(View.INVISIBLE);
@@ -157,27 +156,7 @@ public class Dialer extends Activity {
   else if(phone.active!=null)number.setText(phone.active.getRemoteAddress().getUsername());
   if(state==null&&phone.active==null)importNumber(getIntent());
   number.setSelection(number.length());
-  detail=label("",13,MUTED);
-  detail.setGravity(Gravity.CENTER);
-  detail.setPadding(0,dp(2),0,dp(3));
-  detail.setSingleLine(true);
-  detail.setEllipsize(android.text.TextUtils.TruncateAt.END);
-  detail.setVisibility(View.INVISIBLE);
-  idleCard.addView(detail,new LinearLayout.LayoutParams(-1,singleLineHeight(detail)));
-  status=label("",12,MUTED);
-  status.setGravity(Gravity.CENTER);
-  status.setPadding(dp(4),dp(1),dp(4),dp(3));
-  idleCard.addView(status,box(-1,-2));
   buildSmartSuggestions();
-  routes=row();
-  routes.setPadding(dp(2),dp(2),dp(2),dp(2));
-  ((LinearLayout.LayoutParams)routes.getLayoutParams()).topMargin=dp(8);
-  routes.setBackground(glass(UiProfiles.panel(this),UiProfiles.navigation(this),UiProfiles.secondary(this),23));
-  sipTab=routeKey("SIP","Интернет-телефония SIP",R.drawable.route_city);
-  simTab=routeKey("SIM","Сотовая связь через SIM",R.drawable.route_sim);
-  sim="sim".equals(getPreferences(0).getString("route","sim"));
-  sipTab.setOnClickListener(v->route(false));
-  simTab.setOnClickListener(v->route(true));
 
   callInfo=new LinearLayout(this);
   callInfo.setOrientation(LinearLayout.VERTICAL);
@@ -211,8 +190,8 @@ public class Dialer extends Activity {
   });
   keypad=new LinearLayout(this);
   keypad.setOrientation(LinearLayout.VERTICAL);
-  keypad.setPadding(0,dp(4),0,dp(3));
-  body.addView(keypad,box(-1,-2));
+  keypad.setPadding(0,dp(2),0,dp(2));
+  dialPane.addView(keypad,box(-1,-2));
   String chars="123456789*0#";
   for(int r=0;r<4;r++){
    LinearLayout line=new LinearLayout(this);
@@ -242,19 +221,22 @@ public class Dialer extends Activity {
      speedDial.press(ch-'0');return true;
     });
     slot.addView(key,box(circle,circle));
-    line.addView(slot,flex(-2));
+    LinearLayout.LayoutParams keySlot=flex(-2);
+    keySlot.topMargin=dp(2);keySlot.bottomMargin=dp(2);
+    line.addView(slot,keySlot);
    }
   }
   idleActions=new LinearLayout(this);
+  idleActions.setBaselineAligned(false);
   idleActions.setGravity(Gravity.CENTER_VERTICAL);
-  idleActions.setPadding(dp(3),dp(6),dp(3),dp(4));
-  body.addView(idleActions,box(-1,-2));
+  idleActions.setPadding(dp(3),dp(2),dp(3),dp(2));
+  dialPane.addView(idleActions,box(-1,52));
   action=button("Позвонить",22,UiProfiles.accent(this),UiProfiles.active(this).base);
   action.setTypeface(Typeface.create("sans-serif",Typeface.BOLD));
-  action.setMinHeight(dp(58));action.setPadding(dp(6),dp(8),dp(6),dp(8));
+  action.setMinHeight(dp(48));action.setPadding(dp(6),dp(4),dp(6),dp(4));
   action.setSingleLine(true);
   action.setHorizontallyScrolling(false);
-  int actionHeight=Math.max(dp(58),singleLineHeight(action));
+  int actionHeight=dp(48);
   action.setAutoSizeTextTypeUniformWithConfiguration(dp(12),Math.max(dp(12),Math.round(action.getTextSize())),1,
           android.util.TypedValue.COMPLEX_UNIT_PX);
   idleActions.addView(action,new LinearLayout.LayoutParams(0,actionHeight,1));
@@ -263,7 +245,7 @@ public class Dialer extends Activity {
   erase.setPadding(dp(17),0,0,0);
   erase.setBackground(glass(UiProfiles.button(this),UiProfiles.navigation(this),UiProfiles.secondary(this),17));
   erase.setContentDescription("Удалить цифру");
-  idleActions.addView(erase,box(57,50));
+  idleActions.addView(erase,box(52,48));
   erase.setOnClickListener(v->{
    int a=Math.max(0,number.getSelectionStart()),b=Math.max(0,number.getSelectionEnd());
    number.getText().delete(a==b?Math.max(0,a-1):Math.min(a,b),Math.max(a,b));
@@ -281,7 +263,7 @@ public class Dialer extends Activity {
 
   final int numberSp=UiProfiles.type(this,compact?27:32);
   number.addOnLayoutChangeListener((view,left,topEdge,right,bottom,oldLeft,oldTop,oldRight,oldBottom)->{
-   if(right-left!=oldRight-oldLeft)fitNumber(numberSp);
+   if(right-left!=oldRight-oldLeft||bottom-topEdge!=oldBottom-oldTop)fitNumber(numberSp);
   });
   number.addTextChangedListener(new android.text.TextWatcher(){
    public void beforeTextChanged(CharSequence s,int start,int count,int after){}
@@ -289,15 +271,17 @@ public class Dialer extends Activity {
     fitNumber(numberSp);
     if(phone.active==null)updateCallLabel(sim,phone.ready());
     updateNumberMenu();
-    if(phone.active==null&&!s.toString().equals(lookupNumber)){knownName="";lookupNumber="";detail.setVisibility(View.INVISIBLE);}
+    if(phone.active==null&&!s.toString().equals(lookupNumber)){knownName="";lookupNumber="";}
     scheduleSmartSearch();
    }
    public void afterTextChanged(android.text.Editable e){}
   });
   navigation=tabs(this,root,"dial",tab->{
-   if("dial".equals(tab)){number.requestFocus();scroll.smoothScrollTo(0,0);}
+   if("dial".equals(tab)){number.requestFocus();}
    else openDirectory("recent".equals(tab));
   });
+  fitDialerNavigation();
+  root.bind(header,contentScroll,dialPane,keypad,idleCard,idleActions,navigation);
   refresh();
   directoryAtHome=state!=null&&state.getBoolean("directoryHome");
   directoryVisible=state!=null&&state.getBoolean("directoryOpen");
@@ -318,75 +302,121 @@ public class Dialer extends Activity {
    if(!"dial".equals(first))openDirectory("recent".equals(first),true);
   }
  }
- private void toggleServices(){
-  servicesExpanded=!servicesExpanded;
-  getPreferences(0).edit().putBoolean("showEvServices",servicesExpanded).apply();
-  updateServices();
+ private void buildRouteSelector(){
+  int index=header.getChildCount()-1;
+  TextView brand=(TextView)header.getChildAt(index);
+  header.removeView(brand);
+  routeSelector=new LinearLayout(this);routeSelector.setOrientation(LinearLayout.VERTICAL);
+  routeSelector.setGravity(Gravity.CENTER_VERTICAL);
+  routeSelector.setMinimumWidth(dp(48));routeSelector.setMinimumHeight(dp(48));
+  routeSelector.setBackground(pressable(android.graphics.Color.TRANSPARENT,14));
+  routeSelector.setFocusable(true);
+  brand.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+  routeSelector.addView(brand,box(-1,24));
+  routeLabel=label("",12,UiProfiles.accent(this));
+  routeLabel.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+  routeLabel.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);
+  fitSingleLine(routeLabel,10);
+  routeSelector.addView(routeLabel,box(-1,24));
+  routeSelector.setOnClickListener(v->showRoutePicker());
+  header.addView(routeSelector,index,new LinearLayout.LayoutParams(0,dp(48),1));
  }
- private void updateServices(){
-  if(servicesExpanded&&quickBar==null){
-   quickBar=ElectricUi.shortcuts(this);
-   LinearLayout.LayoutParams layout=new LinearLayout.LayoutParams(-1,-2);
-   layout.topMargin=dp(8);layout.bottomMargin=dp(6);
-   body.addView(quickBar,Math.min(1,body.getChildCount()),layout);
+ private void showRoutePicker(){
+  if(callBlocksNumberActions())return;
+  dismissHeaderPanels();
+  routeDialog=new StationSheet.Builder(this).setTitle("Линия для звонков")
+    .setMessage(phone.ready()?"SIP подключён":"SIP не подключён. SIM работает через сотового оператора.")
+    .setSingleChoiceItems(new String[]{"SIM · Сотовая связь","SIP · Интернет-телефония"},sim?0:1,
+            (dialog,which)->{if(!callBlocksNumberActions())route(which==0);})
+    .setPositiveButton("Настроить SIP",(dialog,which)->{if(!callBlocksNumberActions())configureSip();})
+    .setNegativeButton("Закрыть",null).create();
+  routeDialog.setOnDismissListener(dialog->{if(routeDialog==dialog)routeDialog=null;});
+  routeDialog.show();
+ }
+ private void showServices(){
+  if(callBlocksNumberActions())return;
+  dismissHeaderPanels();
+  // Services live in their own scrolling sheet, never in the dialer's layout.
+  LinearLayout links=ElectricUi.shortcuts(this);
+  links.setOrientation(LinearLayout.VERTICAL);
+  for(int i=0;i<links.getChildCount();i++){
+   LinearLayout.LayoutParams size=new LinearLayout.LayoutParams(-1,-2);
+   size.topMargin=dp(4);size.bottomMargin=dp(4);
+   links.getChildAt(i).setLayoutParams(size);
   }
-  if(quickBar!=null){
-   boolean minimal=UiProfiles.MINIMAL.equals(UiProfiles.id(this));
-   quickBar.setVisibility(servicesExpanded&&!minimal&&phone.active==null?View.VISIBLE:View.GONE);
+  servicesDialog=new StationSheet.Builder(this).setTitle("Сервисы EV")
+          .setView(links).setNegativeButton("Закрыть",null).create();
+  servicesDialog.setOnDismissListener(dialog->{if(servicesDialog==dialog)servicesDialog=null;});
+  servicesDialog.show();
+ }
+ private void dismissHeaderPanels(){
+  StationSheet services=servicesDialog,lines=routeDialog;
+  servicesDialog=null;routeDialog=null;
+  if(services!=null)services.dismiss();
+  if(lines!=null)lines.dismiss();
+ }
+ private void fitSingleLine(TextView view,int minimumDp){
+  int preferred=Math.max(dp(minimumDp)+1,Math.round(view.getTextSize()));
+  view.setSingleLine(true);view.setHorizontallyScrolling(false);
+  view.setEllipsize(android.text.TextUtils.TruncateAt.END);
+  view.setAutoSizeTextTypeUniformWithConfiguration(dp(minimumDp),preferred,1,
+          android.util.TypedValue.COMPLEX_UNIT_PX);
+ }
+ private void fitDialerNavigation(){
+  navigation.setPadding(dp(4),dp(2),dp(4),dp(2));
+  navigation.setLayoutParams(new LinearLayout.LayoutParams(-1,dp(52)));
+  for(int i=0;i<navigation.getChildCount();i++){
+   LinearLayout tab=(LinearLayout)navigation.getChildAt(i);
+   tab.setMinimumHeight(dp(48));tab.setPadding(dp(2),dp(2),dp(2),dp(2));
+   tab.getLayoutParams().height=dp(48);
+   View icon=tab.getChildAt(0);icon.getLayoutParams().width=dp(18);icon.getLayoutParams().height=dp(18);
+   TextView caption=(TextView)tab.getChildAt(1);caption.getLayoutParams().height=dp(22);
+   fitSingleLine(caption,10);
   }
  }
  private void buildSmartSuggestions(){
   smartPanel=new LinearLayout(this);
-  smartPanel.setOrientation(LinearLayout.VERTICAL);
-  smartPanel.setPadding(dp(10),dp(5),dp(10),dp(5));
+  smartPanel.setOrientation(LinearLayout.HORIZONTAL);
+  smartPanel.setBaselineAligned(false);
+  smartPanel.setGravity(Gravity.CENTER_VERTICAL);
+  smartPanel.setPadding(dp(8),dp(4),dp(8),dp(4));
   smartPanel.setBackground(shape(UiProfiles.panel(this),16));
   smartPanel.setVisibility(View.INVISIBLE);
-  LinearLayout.LayoutParams panelSize=box(-1,-2);
-  panelSize.topMargin=dp(5);panelSize.bottomMargin=dp(5);
+  LinearLayout.LayoutParams panelSize=box(-1,64);
+  panelSize.topMargin=dp(2);panelSize.bottomMargin=dp(2);
   body.addView(smartPanel,panelSize);
   smartPrimary=new LinearLayout(this);
+  smartPrimary.setBaselineAligned(false);
   smartPrimary.setGravity(Gravity.CENTER_VERTICAL);
-  smartPrimary.setMinimumHeight(dp(49));
-  smartPrimary.setPadding(dp(6),dp(2),dp(4),dp(2));
-  smartPanel.addView(smartPrimary,box(-1,-2));
+  smartPrimary.setMinimumHeight(dp(48));
+  smartPrimary.setPadding(dp(4),0,0,0);
+  smartPanel.addView(smartPrimary,new LinearLayout.LayoutParams(0,-1,1));
   LinearLayout infoText=new LinearLayout(this);
   infoText.setOrientation(LinearLayout.VERTICAL);
   infoText.setGravity(Gravity.CENTER_VERTICAL);
   smartTitle=label("",15,FG);
   smartTitle.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));
-  smartTitle.setSingleLine(true);
-  smartTitle.setEllipsize(android.text.TextUtils.TruncateAt.END);
+  fitSingleLine(smartTitle,12);
   smartNumber=label("",12,MUTED);
-  smartNumber.setSingleLine(true);
-  smartNumber.setEllipsize(android.text.TextUtils.TruncateAt.END);
-  infoText.addView(smartTitle,box(-1,-2));
-  infoText.addView(smartNumber,box(-1,-2));
+  fitSingleLine(smartNumber,10);
+  infoText.addView(smartTitle,box(-1,28));
+  infoText.addView(smartNumber,box(-1,22));
   smartPrimary.addView(infoText,new LinearLayout.LayoutParams(0,-2,1));
   smartInfo=label("ⓘ",23,UiProfiles.secondary(this));
   smartInfo.setGravity(Gravity.CENTER);
+  fitSingleLine(smartInfo,14);
   smartInfo.setContentDescription("Открыть карточку контакта");
   smartPrimary.addView(smartInfo,box(48,48));
   smartMore=label("",13,UiProfiles.secondary(this));
-  smartMore.setGravity(Gravity.CENTER_VERTICAL);
-  smartMore.setPadding(dp(8),dp(3),dp(8),dp(5));
-  smartMore.setMinHeight(dp(36));
-  smartMore.setSingleLine(true);
-  smartMore.setEllipsize(android.text.TextUtils.TruncateAt.END);
-  // Reserve both result lines and the More row, including while filtering.
-  int titleHeight=singleLineHeight(smartTitle),numberHeight=singleLineHeight(smartNumber);
-  smartTitle.getLayoutParams().height=titleHeight;
-  smartNumber.getLayoutParams().height=numberHeight;
-  int primaryHeight=Math.max(dp(48),titleHeight+numberHeight)
-          +smartPrimary.getPaddingTop()+smartPrimary.getPaddingBottom();
-  smartPrimary.getLayoutParams().height=primaryHeight;
-  int moreHeight=Math.max(dp(36),singleLineHeight(smartMore));
-  smartPanel.addView(smartMore,new LinearLayout.LayoutParams(-1,moreHeight));
-  panelSize.height=primaryHeight+moreHeight+smartPanel.getPaddingTop()+smartPanel.getPaddingBottom();
+  smartMore.setGravity(Gravity.CENTER);
+  smartMore.setPadding(dp(3),0,dp(3),0);
+  smartMore.setMinHeight(dp(48));
+  smartMore.setLines(2);smartMore.setHorizontallyScrolling(false);
+  smartMore.setAutoSizeTextTypeUniformWithConfiguration(dp(10),Math.max(dp(10)+1,Math.round(smartMore.getTextSize())),1,
+          android.util.TypedValue.COMPLEX_UNIT_PX);
+  // A fixed adjacent action replaces the extra line that used to push keys down.
+  smartPanel.addView(smartMore,box(64,-1));
   clearSmartSuggestions();
- }
- private int singleLineHeight(TextView view){
-  android.graphics.Paint.FontMetricsInt metrics=view.getPaint().getFontMetricsInt();
-  return metrics.bottom-metrics.top+view.getCompoundPaddingTop()+view.getCompoundPaddingBottom();
  }
  private void clearSmartSuggestions(){
   smartMatches=null;
@@ -462,11 +492,13 @@ public class Dialer extends Activity {
   smartInfo.setContentDescription("Открыть карточку "+first.name);
   smartInfo.setOnClickListener(v->openSmartContact(first));
   if(results.isRecent){
-   smartMore.setText("Все недавние вызовы");
+   smartMore.setText("Все\nвызовы");
+   smartMore.setContentDescription("Все недавние вызовы");
    smartMore.setVisibility(View.VISIBLE);
    smartMore.setOnClickListener(v->openDirectory(true));
   }else if(results.total>1){
-   smartMore.setText("Ещё "+smartCountLabel(results.total-1));
+   smartMore.setText("Ещё\n"+(results.total-1));
+   smartMore.setContentDescription("Ещё "+smartCountLabel(results.total-1));
    smartMore.setVisibility(View.VISIBLE);
    smartMore.setOnClickListener(v->showSmartMatches(results));
   }else{
@@ -577,6 +609,9 @@ public class Dialer extends Activity {
   String displayed=number.length()==0?number.getHint().toString():number.getText().toString();
   float needed=measure.measureText(displayed);float available=Math.max(1,width-dp(5));
   float size=needed>available?Math.max(14*metrics.density,preferred*available/needed):preferred;
+  android.graphics.Paint.FontMetrics font=measure.getFontMetrics();
+  int height=number.getHeight()-number.getCompoundPaddingTop()-number.getCompoundPaddingBottom();
+  if(height>0)size=Math.min(size,preferred*height/Math.max(1,font.bottom-font.top));
   if(Math.abs(number.getTextSize()-size)>.25f)number.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX,size);
  }
  private String startTab(){return getPreferences(0).getString("startTab","dial");}
@@ -945,6 +980,7 @@ public class Dialer extends Activity {
   smartQueryGeneration++;smartLoadGeneration++;
   if(smartPending!=null)smartUi.removeCallbacks(smartPending);
   dismissSmartMatches();
+  dismissHeaderPanels();
   clearSmartSuggestions();
   super.onPause();
  }
@@ -953,6 +989,7 @@ public class Dialer extends Activity {
   smartQueryGeneration++;smartLoadGeneration++;
   if(smartPending!=null)smartUi.removeCallbacks(smartPending);
   dismissSmartMatches();
+  dismissHeaderPanels();
   smartWorker.shutdownNow();
   super.onDestroy();
  }
@@ -961,24 +998,19 @@ public class Dialer extends Activity {
  void refresh(){
   incomingReply.reconcile();
   boolean busy=phone.active!=null, incoming=phone.ringing(), cell=sim&&!busy;
-  if(busy)dismissSmartMatches();
+  if(busy){dismissSmartMatches();dismissHeaderPanels();}
   boolean sipReady=phone.ready();
 
   String sipState=sipReady?"SIP подключён":"SIP не подключён";
-  status.setText(cell?"Выбрана SIM · "+sipState:sipReady?"Выбрана SIP · Линия готова":"Выбрана SIP · Линия недоступна");
-  status.setVisibility(busy?View.GONE:View.VISIBLE);
-  status.setTextColor(!cell&&sipReady?UiProfiles.accent(this):UiProfiles.muted(this));
-  sipTab.setContentDescription("Интернет-линия. "+sipState+(cell?". Не выбрана":". Выбрана"));
-  simTab.setContentDescription("Сотовая линия SIM"+(cell?". Выбрана":". Не выбрана"));
-  sipTab.setBackground(routeSurface(!cell));
-  simTab.setBackground(routeSurface(cell));
-  sipTab.setSelected(!cell);simTab.setSelected(cell);sipTab.setTextColor(cell?UiProfiles.muted(this):UiProfiles.accent(this));simTab.setTextColor(cell?UiProfiles.accent(this):UiProfiles.muted(this));
-  boolean minimal=UiProfiles.MINIMAL.equals(UiProfiles.id(this));
-   if(quickBar!=null)quickBar.setVisibility(busy||minimal||!servicesExpanded?View.GONE:View.VISIBLE);
-   header.setVisibility(busy||minimal?View.GONE:View.VISIBLE);idleCard.setVisibility(busy?View.GONE:View.VISIBLE);
+  routeLabel.setText((sim?"SIM":sipReady?"SIP":"SIP !")+" ▾");
+  routeSelector.setContentDescription("Выбрать линию вызова. "+(sim?"Выбрана SIM. ":"Выбрана SIP. ")+sipState);
+  routeSelector.setTooltipText((sim?"Сотовая связь SIM. ":"Интернет-телефония SIP. ")+sipState);
+  routeSelector.setEnabled(!callBlocksNumberActions());
+  body.setGravity(busy?Gravity.TOP:Gravity.BOTTOM);
+   header.setVisibility(busy?View.GONE:View.VISIBLE);idleCard.setVisibility(busy?View.GONE:View.VISIBLE);
    if(smartPanel!=null)smartPanel.setVisibility(busy?View.GONE:(smartMatches!=null?View.VISIBLE:View.INVISIBLE));
-  idleActions.setVisibility(busy?View.GONE:View.VISIBLE);routes.setVisibility(busy||minimal?View.GONE:View.VISIBLE);
-  navigation.setVisibility(busy||minimal?View.GONE:View.VISIBLE);
+  idleActions.setVisibility(busy?View.GONE:View.VISIBLE);
+  navigation.setVisibility(busy?View.GONE:View.VISIBLE);
   callInfo.setVisibility(busy?View.VISIBLE:View.GONE);batterySlot.setVisibility(busy?View.VISIBLE:View.GONE);
   tools.setVisibility(busy&&!incoming?View.VISIBLE:View.GONE);
   if(shownCall!=phone.active){
@@ -996,6 +1028,7 @@ public class Dialer extends Activity {
    }
   }
   keypad.setVisibility(!busy||(!incoming&&sipKeysOpen)?View.VISIBLE:View.GONE);
+  dialPane.setVisibility(!busy||(!incoming&&sipKeysOpen)?View.VISIBLE:View.GONE);
   replyButton.setVisibility(incoming&&IncomingReply.sipRecipient(shownCall)!=null?View.VISIBLE:View.GONE);
   updateNumberMenu();
   if(busy){
@@ -1018,8 +1051,6 @@ public class Dialer extends Activity {
    action.setBackground(glass(UiProfiles.opacity(UiProfiles.accent(this),buttonOpacity),
        UiProfiles.opacity(UiProfiles.accent(this),Math.max(0,buttonOpacity-14)),UiProfiles.accent(this),24));
    action.setTextColor(buttonOpacity>=65?UiProfiles.active(this).base:UiProfiles.text(this));
-   detail.setText(lookupNumber.equals(number.getText().toString())?knownName:"");
-   detail.setVisibility(detail.length()>0?View.VISIBLE:View.INVISIBLE);
   }
   int lockFlags=WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED|WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON;
   if(incoming)getWindow().addFlags(lockFlags);
@@ -1161,16 +1192,6 @@ public class Dialer extends Activity {
   t.setTextColor(color==FG?UiProfiles.text(this):color==MUTED?UiProfiles.muted(this):color==GREEN?UiProfiles.accent(this):color==CARD?UiProfiles.panel(this):color);
   t.setGravity(Gravity.CENTER_VERTICAL);return t;}
  TextView button(String s,int size,int bg,int fg){TextView t=label(s,size,fg);t.setGravity(Gravity.CENTER);t.setBackground(pressable(bg,18));return t;}
- private TextView routeKey(String title,String description,int image){
-  TextView tab=button(title,14,CARD,FG);
-  tab.setContentDescription(description);tab.setMinHeight(dp(48));
-  tab.setPadding(dp(11),dp(5),dp(11),dp(5));icon(tab,image,FG,18);
-  tab.setCompoundDrawablePadding(dp(4));
-  routes.addView(tab,flex(-2));return tab;
- }
- private android.graphics.drawable.Drawable routeSurface(boolean selected){
-  return selected?glass(UiProfiles.opacity(UiProfiles.accent(this),82),UiProfiles.panel(this),UiProfiles.accent(this),20):pressable(0x00000000,20);
- }
  private void icon(TextView view,int resource,int tint,int size){
   android.graphics.drawable.Drawable drawable=getDrawable(resource).mutate();
   drawable.setTint(tint==FG?UiProfiles.text(this):tint==GREEN?UiProfiles.accent(this):tint);drawable.setBounds(0,0,dp(size),dp(size));

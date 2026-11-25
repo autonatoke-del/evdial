@@ -13,9 +13,10 @@ manifest = (ROOT/"src/main/AndroidManifest.xml").read_text(encoding="utf-8")
 build = (ROOT/"build.gradle").read_text(encoding="utf-8")
 
 checks = {
-    "version_18": "versionCode 18; versionName '0.3.3-rc4'" in build,
-    "suggestions_below_number": "idleCard.addView(status,box(-1,-2));\n  buildSmartSuggestions();" in dial,
-    "suggestions_before_sim_route": "buildSmartSuggestions();\n  routes=row();" in dial,
+    "version_19": "versionCode 19; versionName '0.3.3-rc5'" in build,
+    "suggestions_in_upper_content": "body.addView(smartPanel,panelSize)" in dial
+        and "dialPane.addView(idleCard" in dial,
+    "compact_route_selection": "buildRouteSelector();" in dial and "showRoutePicker()" in dial,
     "typing_triggers_search": "scheduleSmartSearch();" in dial and "addTextChangedListener" in dial,
     "source_on_device": "SmartDialIndex.load(getApplicationContext())" in dial,
     "background_executor": "Executors.newSingleThreadExecutor()" in dial,
@@ -25,9 +26,9 @@ checks = {
         for control in ('smartPrimary','smartInfo','smartMore')) and 'clearSmartSuggestions();' in dial,
     "suggestions_follow_active_call": "smartPanel.setVisibility(phone.active!=null?View.GONE:View.VISIBLE)" in dial,
     "one_best_match": "results.items.get(0).entry" in dial,
-    "more_matches": 'smartMore.setText("Ещё "+smartCountLabel(results.total-1))' in dial,
+    "more_matches": 'smartMore.setContentDescription("Ещё "+smartCountLabel(results.total-1))' in dial,
     "latest_call": 'smartTitle.setText(results.isRecent?"Последний · "+first.name:first.name)' in dial,
-    "open_all_recent_calls": 'smartMore.setText("Все недавние вызовы")' in dial,
+    "open_all_recent_calls": 'smartMore.setContentDescription("Все недавние вызовы")' in dial,
     "keeps_keypad_visible": "keypad.setVisibility(!busy||(!incoming&&sipKeysOpen)" in dial,
     "contact_card": "ContactsScreen.EXTRA_CONTACT_LOOKUP" in dial,
     "call_by_tap": "smartPrimary.setOnClickListener(v->applySmartSelection(first,true))" in dial,
