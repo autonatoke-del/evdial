@@ -24,13 +24,13 @@ python3 tests/SmartDialUiSourceChecks.py
 gradle assembleRelease lintRelease # unsigned release build, do not publish it
 # Native Android keypad layout, widths 320/360/393dp and font scales up to 200%:
 gradle testDebugUnitTest --tests ru.autonatoke.evdial.DialpadKeyLayoutTest
-# Real Dialer positions through pending/empty/one/many search results and edits:
+# Actual Dialer: every key and call action visible, including small portrait screens:
 gradle testDebugUnitTest --tests ru.autonatoke.evdial.DialerTypingLayoutTest
 ```
 
 The keypad layout suite uses Robolectric Native Graphics on Android API 34 and saves renderings under `build/reports/keypad/`. It creates the real keypad component with a plain Android Application, without starting SIP or placing calls.
 
-The typing layout suite runs the actual Dialer Activity with synthetic local contacts. It checks the keypad, number row, call button and scroll position before and after asynchronous searches, including long numbers and deletion. A test application prevents telephony and service activation; stale result actions must be unavailable while a new search is pending.
+The typing layout suite runs the actual Dialer Activity with synthetic local contacts. Its 12 configurations cover portrait screens from 320×568dp through 393×873dp, system fonts up to 200%, app scale up to 150%, and EV/Rubina/Minimal themes. Every scenario checks that the number field, all 12 keys and the call button are fully visible above navigation with at least 48dp touch targets. It also verifies stable positions during edits and asynchronous search, independent upper-area scrolling, line-selection and EV-services panels, and upgrading from the old expanded-services preference. A test application prevents telephony and service activation; stale result actions must be unavailable while a new search is pending.
 
 The source, JVM and keypad layout tests do NOT prove functional telephony or physical device UI. Test Android default dialer role, SIM/SIP incoming and outgoing calls, double-SIM routing, lock-screen, audio routes, contact permission handling, vCard import/export and updater behavior on Xiaomi/Samsung before a production rollout.
 

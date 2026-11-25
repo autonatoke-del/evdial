@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Source-only regression checks for EVDial 0.3.3-rc4 UX patch.
+"""Source-only regression checks for EVDial 0.3.3-rc5 UX patch.
 
 No calls, network, signing keys, Android emulator, or publishing involved.
 """
@@ -16,15 +16,16 @@ callcontrol = (java / "BatteryCallControl.java").read_text(encoding="utf-8")
 checks = {
     "dialer_is_native": "class Dialer extends Activity" in dial,
     "package_unchanged": "ru.autonatoke.evdial.design" in gradle,
-    "version_18": "versionCode 18" in gradle and "versionName '0.3.3-rc4'" in gradle,
+    "version_19": "versionCode 19" in gradle and "versionName '0.3.3-rc5'" in gradle,
     "original_sdk_baseline": "minSdk 26; targetSdk 33" in gradle,
     "no_new_manifest_permission": "READ_CONTACTS" in manifest and "BIND_INCALL_SERVICE" in manifest,
-    "ev_shortcuts_lazy_constructed": dial.count("quickBar=ElectricUi.shortcuts(this)") == 1
-       and "if(servicesExpanded&&quickBar==null)" in dial,
-    "ev_focus_persisted": 'getBoolean("showEvServices",false)' in dial
-       and 'putBoolean("showEvServices",servicesExpanded)' in dial,
-    "ev_shortcuts_controllable": "Сервисы EV: показать или скрыть" in dial,
-    "dial_compact_header": "compact?64:76" in dial,
+    "ev_shortcuts_on_demand": dial.count("links=ElectricUi.shortcuts(this)") == 1
+       and "private void showServices()" in dial,
+    "old_inline_expansion_not_restored": 'getBoolean("showEvServices"' not in dial
+       and "servicesDialog" in dial,
+    "ev_shortcuts_controllable": '"Сервисы EV",this::showServices' in dial,
+    "dial_viewport_measured": "DialerViewport root=new DialerViewport(this)" in dial
+       and "root.bind(header,contentScroll,dialPane,keypad,idleCard,idleActions,navigation)" in dial,
     "sim_status_readable": "Выбрана SIM" in dial,
     "sip_status_readable": "Выбрана SIP" in dial,
     "sip_readiness_truthful": 'sipReady?"SIP подключён":"SIP не подключён"' in dial,
