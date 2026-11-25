@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.os.Looper;
 import android.view.View;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import java.io.File;
@@ -128,6 +129,13 @@ public final class DialerTypingLayoutTest {
             layoutAndDraw();
             if (preScrolled) assertTrue("Fixture must start below the top", scroll.getScrollY() > 0);
             else assertEquals("Fixture starts at the top", 0, scroll.getScrollY());
+            if (preScrolled && widthDp == 320) {
+                int[] fieldPosition = new int[2], viewportPosition = new int[2];
+                activity.number.getLocationOnScreen(fieldPosition);
+                scroll.getLocationOnScreen(viewportPosition);
+                assertTrue("Near-bottom fixture must put the entire number field above the viewport",
+                        fieldPosition[1] + activity.number.getHeight() < viewportPosition[1]);
+            }
             baseline = new Geometry(activity, scroll);
 
             // A previously resolved name must not add/remove a row on the next edit.
@@ -153,6 +161,9 @@ public final class DialerTypingLayoutTest {
             // Long input changes fitted text size and disables the number menu.
             type("1234567890123456789012345");
             resolved(0, false, "long number");
+            press('8');
+            resolved(0, false, "next digit after long number");
+            assertHorizontalCursorVisible();
             assertEquals("Unavailable menu keeps its slot", View.INVISIBLE, activity.numberMenu.getVisibility());
             clear();
             resolved(2, true, "recent calls after clearing");
@@ -168,6 +179,7 @@ public final class DialerTypingLayoutTest {
             clear();
             resolved(2, true, "return to recents");
             renderPreview();
+            if (preScrolled && widthDp == 320) assertAccessibilityCanRevealNumber();
         } finally {
             if (activity != null) controller.pause().stop().destroy();
             if (bitmap != null) bitmap.recycle();
@@ -267,6 +279,35 @@ public final class DialerTypingLayoutTest {
         assertNotNull("Production search completed", matches);
         assertEquals("Synthetic result count for " + activity.number.getText(), total, matches.total);
         assertEquals("Recent mode", recent, matches.isRecent);
+    }
+
+    private void assertHorizontalCursorVisible() {
+        assertEquals("A real keypad press advances the caret", activity.number.length(),
+                activity.number.getSelectionEnd());
+        android.text.Layout textLayout = activity.number.getLayout();
+        assertNotNull(textLayout);
+        int width = activity.number.getWidth() - activity.number.getCompoundPaddingLeft()
+                - activity.number.getCompoundPaddingRight();
+        if (textLayout.getLineWidth(0) > width) {
+            float caret = textLayout.getPrimaryHorizontal(activity.number.getSelectionEnd())
+                    - activity.number.getScrollX();
+            assertTrue("Overflowing number still scrolls horizontally to its caret", caret >= -dp(2)
+                    && caret <= width + dp(2));
+        }
+    }
+
+    private void assertAccessibilityCanRevealNumber() {
+        assertTrue("Explicit accessibility reveal remains supported",
+                activity.number.performAccessibilityAction(
+                        AccessibilityNodeInfo.AccessibilityAction.ACTION_SHOW_ON_SCREEN.getId(), null));
+        layoutAndDraw();
+        int[] fieldPosition = new int[2], viewportPosition = new int[2];
+        activity.number.getLocationOnScreen(fieldPosition);
+        scroll.getLocationOnScreen(viewportPosition);
+        assertTrue("Accessibility reveals the full number field",
+                fieldPosition[1] >= viewportPosition[1] - 1
+                && fieldPosition[1] + activity.number.getHeight()
+                <= viewportPosition[1] + scroll.getHeight() + 1);
     }
 
     private void resolveSearch() throws Exception {

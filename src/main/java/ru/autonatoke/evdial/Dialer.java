@@ -103,7 +103,20 @@ public class Dialer extends Activity {
   idleCard.setPadding(dp(7),dp(7),dp(7),dp(7));
   idleCard.setBackground(glass(UiProfiles.panel(this),UiProfiles.opacity(UiProfiles.active(this).base,UiProfiles.value(this,UiProfiles.PANEL)),UiProfiles.secondary(this),22));
   body.addView(idleCard,box(-1,-2));
-  number=new EditText(this);
+  number=new EditText(this){
+   @Override public boolean requestRectangleOnScreen(android.graphics.Rect rectangle,boolean immediate){
+    // The caret may scroll inside the field, but must not pull the dialpad offscreen.
+    return isAccessibilityFocused()&&super.requestRectangleOnScreen(rectangle,immediate);
+   }
+   @Override public boolean performAccessibilityAction(int action,Bundle arguments){
+    if(action==android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction.ACTION_SHOW_ON_SCREEN.getId()){
+     android.graphics.Rect rectangle=new android.graphics.Rect();
+     getDrawingRect(rectangle);
+     return super.requestRectangleOnScreen(rectangle,true);
+    }
+    return super.performAccessibilityAction(action,arguments);
+   }
+  };
   number.setInputType(InputType.TYPE_CLASS_PHONE);
   number.setSingleLine();
   number.setGravity(Gravity.CENTER);
