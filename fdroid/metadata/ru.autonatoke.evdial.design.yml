@@ -5,7 +5,7 @@ AuthorName: autonatoke-del
 WebSite: https://autonatoke.ru/evdial/
 SourceCode: https://github.com/autonatoke-del/evdial
 IssueTracker: https://github.com/autonatoke-del/evdial/issues
-Changelog: https://github.com/autonatoke-del/evdial/tree/main/fastlane/metadata/android/en-US/changelogs
+Changelog: https://github.com/autonatoke-del/evdial/tree/HEAD/fastlane/metadata/android/en-US/changelogs
 AntiFeatures:
   NonFreeNet:
     en-US: Optional links open proprietary web search, maps, messaging and DIAGNOST AI services.
@@ -21,7 +21,10 @@ Builds:
     disable: Candidate only; full source build, scanner and asset-license audit are unverified
     commit: REPLACE_WITH_TESTED_SOURCE_COMMIT
     sudo:
+      - echo "deb https://deb.debian.org/debian bookworm main"
+        > /etc/apt/sources.list.d/bookworm.list
       - apt-get update
+      - apt-get install -y -t bookworm openjdk-17-jdk-headless
       - apt-get install -y build-essential cmake doxygen meson nasm pkgconf python3-pystache
         python3-six yasm
     gradle:
@@ -29,13 +32,18 @@ Builds:
     srclibs:
       - linphone-sdk@ce38159e55897c695b7095019b5a1ff612bb181f
     prebuild:
+      - echo 'org.gradle.java.home=/usr/lib/jvm/java-17-openjdk-amd64' >> gradle.properties
       - python3 fdroid/prepare-source.py
       - git -C $$linphone-sdk$$ submodule update --init --recursive
       - bash fdroid/build-linphone.sh prepare "$(realpath $$linphone-sdk$$)"
         "$(realpath -m $$linphone-sdk$$/../evdial-linphone-work)"
     build:
-      - test -n "$LINPHONE_GRADLE"
-      - ANDROID_NDK_HOME=$$NDK$$ bash fdroid/build-linphone.sh build
+      - export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+      - export CACHEDIR="$(realpath -m "${CACHEDIR:-${XDG_CACHE_HOME:-$HOME/.cache}/gradlew-fdroid}")"
+      - gradlew-fdroid --project-dir "$$linphone-sdk$$/cmake/Android" --version
+      - export LINPHONE_GRADLE="$CACHEDIR/versions/8.11.1/bin/gradle"
+      - test -x "$LINPHONE_GRADLE"
+      - FDROID_GRADLE_OFFLINE=0 ANDROID_NDK_HOME="$$NDK$$" bash fdroid/build-linphone.sh build
         "$(realpath $$linphone-sdk$$)" "$(realpath -m $$linphone-sdk$$/../evdial-linphone-work)"
       - printf '\nfdroid=true\nlinphoneAar=%s\n'
         "$(realpath $$linphone-sdk$$/../evdial-linphone-work/build/linphone-sdk/bin/outputs/aar/linphone-sdk-android-release.aar)"
@@ -55,15 +63,18 @@ MaintainerNotes: |-
   the source scan. No scanignore is used to conceal the custom Maven repository.
 
   Provision JDK17, NDK27, Android platforms31 and35, build-tools35.0.0 and the
-  SDK's required Android build tools before the build. Set LINPHONE_GRADLE to
-  the installed Gradle 8.11.1 executable; app Gradle 8.13 is separate. SDK AGP is
+  SDK's required Android build tools before the build. The recipe uses the
+  official gradlew-fdroid launcher to install/check Gradle 8.11.1 and passes its
+  CACHEDIR executable as LINPHONE_GRADLE. The app's text-only wrapper properties
+  select Gradle 8.13; no wrapper JAR is bundled. SDK AGP is
   8.0.0; app AGP is 8.7.3. LINPHONE_JOBS defaults to 2, allowed range 1..8.
   Python 3.9 or later is required by the packaging helpers.
-  FDROID_GRADLE_OFFLINE defaults to 1 and requires a populated dependency cache;
-  use 0 only when normal Maven dependency resolution is permitted by the build
-  runner. Cache provisioning and SDK JCenter legacy repository resolution must
-  be validated in a real F-Droid build environment. No Gradle path or cache is
-  assumed to exist on a new runner.
+  The helper defaults to offline; this candidate explicitly permits normal
+  Maven dependency resolution while building in F-Droid's runner. Dependency
+  provisioning and SDK JCenter legacy repository resolution still need a full
+  build. Java 17 is installed explicitly from Debian bookworm because the
+  current F-Droid VM otherwise defaults to Java 21. The app daemon is pinned
+  via org.gradle.java.home, independently of the SDK's JAVA_HOME.
 
   Full SDK/app builds, source and binary scans, local-AAR transitive dependency
   verification, APK manifest checks and device SIP/SIM checks remain outstanding.
