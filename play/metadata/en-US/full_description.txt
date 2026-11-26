@@ -1,0 +1,25 @@
+EVDial combines an Android SIM dialer with optional SIP voice calling, contacts and recent calls in an electric vehicle themed interface.
+
+Calling and contacts
+• Make SIM calls using Android's phone integration.
+• Configure your own SIP provider for voice calls. A SIP account is optional for SIM calling.
+• Search device contacts and recent calls, use speed dial, and open or share contact cards.
+• Send an SMS when EVDial is your default phone app, or open a draft in your SMS app. Share a message and selected attachments with an installed messaging app.
+• Use microphone, speaker and keypad controls during calls, with red and green lightning controls for ending and accepting calls.
+• Play a local call recording that you select through Android's file picker. EVDial does not record SIM calls itself.
+
+
+Appearance and EV tools
+• Choose visual themes or import a photo as your background.
+• Browse an offline selection of Russian charging locations from Open Charge Map, with CC BY 4.0 attribution.
+• Open maps, routes and charging websites when you need more information. The bundled directory is a dated snapshot, not live availability.
+
+
+Android 8.0 or later is required. System call handling needs the default phone role and relevant permissions. SIP needs a compatible provider and an Internet connection; carrier and provider charges may apply. Device manufacturers can restrict incoming call behavior.
+
+Contacts and call history are used locally by EVDial. Calls and SMS go through the provider you choose. Sharing sends the selected content to your chosen app. Optional map, web search, messenger and DIAGNOST AI links open external services, including proprietary services, with their own terms and privacy practices.
+
+This Google Play build uses Google Play for updates; its website APK updater is disabled. EVDial is an evolving preview release.
+
+Privacy policy: https://autonatoke.ru/evdial/privacy/
+Source code: https://github.com/autonatoke-del/evdial

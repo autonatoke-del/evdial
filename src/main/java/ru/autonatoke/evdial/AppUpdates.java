@@ -45,12 +45,18 @@ public final class AppUpdates extends Activity {
     private long installed;
     private String installedName;
 
+    private static boolean storeBuild() { return BuildConfig.FDROID_BUILD || BuildConfig.GOOGLE_PLAY_BUILD; }
+    private static String storeName() { return BuildConfig.GOOGLE_PLAY_BUILD ? "Google Play" : "F-Droid"; }
+    private static String storeButton(Activity activity) {
+        return ElectricUi.tr(activity, "Открыть ", "Open ") + storeName();
+    }
+
     static void open(Activity activity) {
-        if (BuildConfig.FDROID_BUILD) {
+        if (storeBuild()) {
             new StationSheet.Builder(activity)
-                .setTitle(ElectricUi.tr(activity, "Обновления F-Droid", "F-Droid updates"))
+                .setTitle(ElectricUi.tr(activity, "Обновления · ", "Updates · ") + storeName())
                 .setMessage(repositoryGuidance(activity))
-                .setPositiveButton(ElectricUi.tr(activity, "Открыть F-Droid", "Open F-Droid"),
+                .setPositiveButton(storeButton(activity),
                         (dialog, which) -> openRepositoryClient(activity))
                 .setNegativeButton(ElectricUi.tr(activity, "Закрыть", "Close"), null).show();
             return;
@@ -58,11 +64,33 @@ public final class AppUpdates extends Activity {
         activity.startActivity(new Intent(activity, AppUpdates.class));
     }
     private static String repositoryGuidance(Activity activity) {
+        if (BuildConfig.GOOGLE_PLAY_BUILD) return ElectricUi.tr(activity,
+                "Эта версия EVDial обновляется через Google Play. Откройте страницу приложения и проверьте обновления там. Если магазин не установлен, откроется его сайт.",
+                "This EVDial version updates through Google Play. Open the app listing to check for updates. If the store is not installed, its website will open.");
         return ElectricUi.tr(activity,
                 "Обновляйте EVDial через тот репозиторий, откуда установили приложение. Откройте F-Droid и проверьте обновления там. Если клиент не установлен, откроется сайт F-Droid.",
                 "Update EVDial through the repository you installed it from. Open F-Droid and check for updates there. If the client is not installed, the F-Droid website will open.");
     }
     private static void openRepositoryClient(Activity activity) {
+        if (BuildConfig.GOOGLE_PLAY_BUILD) {
+            String id = activity.getPackageName();
+            try {
+                Intent market = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + id))
+                        .setPackage("com.android.vending");
+                if (market.resolveActivity(activity.getPackageManager()) != null) {
+                    activity.startActivity(market);
+                    return;
+                }
+            } catch (ActivityNotFoundException | SecurityException ignored) {}
+            try {
+                activity.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=" + id)));
+            } catch (ActivityNotFoundException | SecurityException unavailable) {
+                android.widget.Toast.makeText(activity, ElectricUi.tr(activity,
+                        "Нет приложения для открытия Google Play.", "No application can open Google Play."),
+                        android.widget.Toast.LENGTH_LONG).show();
+            }
+            return;
+        }
         Intent client = activity.getPackageManager().getLaunchIntentForPackage("org.fdroid.fdroid");
         if (client != null) {
             try { activity.startActivity(client); return; }
@@ -91,9 +119,9 @@ public final class AppUpdates extends Activity {
         add(root, ElectricUi.button(this, tr("‹  К телефону", "‹  Back to phone"), this::finish), 0);
         add(root, ElectricUi.text(this, tr("Обновления EVDial", "EVDial updates"), 28, ElectricUi.WHITE, true), 22);
         add(root, ElectricUi.text(this, tr("Установлена версия ", "Installed version ") + installedName, 16, ElectricUi.CYAN, true), 10);
-        if (BuildConfig.FDROID_BUILD) {
+        if (storeBuild()) {
             add(root, ElectricUi.text(this, repositoryGuidance(this), 16, ElectricUi.MUTED, false), 22);
-            add(root, ElectricUi.button(this, tr("Открыть F-Droid", "Open F-Droid"),
+            add(root, ElectricUi.button(this, storeButton(this),
                     () -> openRepositoryClient(this)), 20);
             return;
         }
@@ -113,7 +141,7 @@ public final class AppUpdates extends Activity {
         controls(); restore();
     }
     private void restore() {
-        if (BuildConfig.FDROID_BUILD) return;
+        if (storeBuild()) return;
         String json = getPreferences(MODE_PRIVATE).getString("pending", "");
         if (json.isEmpty()) return;
         try {
@@ -124,7 +152,7 @@ public final class AppUpdates extends Activity {
         } catch (Exception ignored) { getPreferences(MODE_PRIVATE).edit().remove("pending").apply(); }
     }
     private void check() {
-        if (BuildConfig.FDROID_BUILD) return;
+        if (storeBuild()) return;
         if (busy) return;
         setBusy(true); state.setText(tr("Проверяю версию на сервере…", "Checking the server…"));
         worker.execute(() -> {
@@ -145,14 +173,14 @@ public final class AppUpdates extends Activity {
         details.setText(tr("Версия ", "Version ") + offered.name + " · " + String.format(Locale.getDefault(), "%.1f", offered.bytes / 1000000.0) + " MB\n\n" + offered.notes);
     }
     private void confirmDownload() {
-        if (BuildConfig.FDROID_BUILD) return;
+        if (storeBuild()) return;
         if (busy || offered == null || !UpdateRules.newer(installed, offered.version)) return;
         new StationSheet.Builder(this).setTitle(tr("Скачать обновление?", "Download update?"))
             .setMessage(tr("Будет использован интернет: ", "Download size: ") + String.format(Locale.getDefault(), "%.1f MB", offered.bytes / 1000000.0))
             .setPositiveButton(tr("Скачать", "Download"), (d, w) -> download()).setNegativeButton(tr("Отмена", "Cancel"), null).show();
     }
     private void download() {
-        if (BuildConfig.FDROID_BUILD) return;
+        if (storeBuild()) return;
         if (busy || offered == null) return;
         final Candidate c = offered; ready = null; setBusy(true); state.setText(tr("Загружаю…", "Downloading…"));
         worker.execute(() -> {
@@ -188,7 +216,7 @@ public final class AppUpdates extends Activity {
         });
     }
     private void confirmInstall() {
-        if (BuildConfig.FDROID_BUILD) return;
+        if (storeBuild()) return;
         if (busy || ready == null || offered == null) return;
         if (inCall()) { state.setText(tr("Сначала завершите звонок. Обновление подождёт.", "Finish your call first. The update can wait.")); return; }
         if (!getPackageManager().canRequestPackageInstalls()) {
@@ -233,7 +261,7 @@ public final class AppUpdates extends Activity {
         } finally { h.disconnect(); connection = null; }
     }
     private HttpURLConnection connect(String address) throws Exception {
-        if (BuildConfig.FDROID_BUILD) throw new IOException("Updates are managed by the repository client");
+        if (storeBuild()) throw new IOException("Updates are managed by the distribution store");
         ensureActive();
         if (!UpdateRules.FEED.equals(address)) UpdateRules.apkUrl(address);
         HttpURLConnection h = (HttpURLConnection) new URL(address).openConnection(); connection = h;

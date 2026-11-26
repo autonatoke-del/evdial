@@ -1,18 +1,20 @@
-# EVDial privacy information
+# EVDial Privacy Policy
 
-This document describes the EVDial Android client source, including the optional F-Droid build mode. It does not describe the separate services that a user can open from the app. It is not a claim that a build has been accepted into the F-Droid catalog.
+Last updated: 27 November 2026.
+
+EVDial is an Android phone application developed in the public **autonatoke-del/evdial** project. This policy describes the Android client, including its optional F-Droid and Google Play distribution modes. The project's contact channel is [EVDial support issues](https://github.com/autonatoke-del/evdial/issues). The policy does not replace the separate policies of a carrier, SIP provider, browser or external service. Describing a distribution mode does not mean the application has been accepted into that store.
 
 ## Contacts and call history
 
 EVDial reads the Android contacts provider after contact access is granted. It uses names, numbers and contact photos for lookup and caller identification. Contact details are not uploaded to an EVDial server by these features. Android or another account provider may separately synchronize the device address book under its own settings.
 
-The app reads the Android call log when permitted and uses it for recent calls and number lookup. SIP call history is stored separately in private app preferences, with up to 200 entries containing the remote number, call identifier, time, direction and duration. Speed-dial slots and preferences are also stored locally.
+The app reads the Android call log when it is the selected default phone application and call-log access is permitted, and uses it for recent calls and number lookup. SIP call history is stored separately in private app preferences, with up to 200 entries containing the remote number, call identifier, time, direction and duration. Speed-dial slots and preferences are also stored locally.
 
 Adding or editing a contact opens an Android contact editor. Changing a contact's favorite status requires write access to contacts. Sharing a contact card or text sends the selected data to the application the user chooses. Copy actions put the selected value on the system clipboard.
 
 ## Calls, SIP and messages
 
-SIM calls and SMS are handled through Android and the user's mobile carrier. They are not routed through an EVDial-operated telephony service. Carrier billing and data-handling rules apply. EVDial can send an SMS after the user chooses to send it and grants SMS permission. It stores temporary local send-status information; it does not implement an SMS inbox.
+SIM calls and SMS are handled through Android and the user's mobile carrier. They are not routed through an EVDial-operated telephony service. Carrier billing and data-handling rules apply. EVDial can send an SMS after the user chooses to send it, selects EVDial as the default phone application and grants SMS permission. When EVDial is not the default phone application, it passes the draft and recipient to the user's SMS application for confirmation and delivery. It stores temporary local send-status information; it does not implement an SMS inbox.
 
 SIP is optional and uses the server and account configured by the user. That server receives the information needed for registration and calls, including the SIP identity, destination and network connection information. Call audio is transmitted as part of the call. Once an account is saved, the app can register it when it starts; enabling incoming SIP support keeps a foreground service available for calls. EVDial disables Linphone push notifications and video capture/display in its application code.
 
@@ -40,6 +42,8 @@ The website-distributed preview has a user-invoked updater. Checking for updates
 
 When built with the F-Droid mode, the website updater is disabled, and the installer permission and update file provider are removed. The update action explains repository-managed updates and can open the installed F-Droid client or the F-Droid website. The selected repository and client have their own network behavior.
 
+In Google Play builds, the website updater, installation permission and update file provider are also disabled. The update action opens the EVDial listing in Google Play or its website after the user taps. Updates are distributed by Google Play under its own policies.
+
 No developer analytics, advertising SDK integration or crash-reporting service is implemented in EVDial's application source. This statement does not describe telemetry independently performed by Android, the mobile carrier, the SIP provider, a browser, or another installed app.
 
 ## Permissions and user control
@@ -50,9 +54,9 @@ No developer analytics, advertising SDK integration or crash-reporting service i
 | Read contacts and call log | Contact lookup, caller identification and recent calls |
 | Write contacts | Change a contact's favorite status |
 | Send SMS | Send a message explicitly submitted by the user |
-| Microphone | SIP voice calling and its incoming-call foreground service |
+| Microphone | Audio during SIP voice calls |
 | Notifications/full-screen call UI | Incoming call alerts and call-service controls |
-| Foreground service/wake lock | Maintain call-related operation |
+| Foreground service/wake lock | Maintain call-related operation; the Google Play build uses a separate service type for user-enabled SIP registration and incoming-call signalling, without microphone capture while idle |
 | Internet | SIP and, in website builds, user-invoked update requests |
 | Selected documents | Read a chosen recording, folder, wallpaper or attachment |
 | Package installation, website build only | Ask Android to install a downloaded preview update |

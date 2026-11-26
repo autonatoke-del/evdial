@@ -37,6 +37,9 @@ final class ScreenOrientation implements Application.ActivityLifecycleCallbacks 
 
     @Override public void onActivityCreated(Activity activity, Bundle savedState) { apply(activity); }
     @Override public void onActivityResumed(Activity activity) { apply(activity); }
+    // These callbacks run after setContentView and any page rebuild in onResume.
+    @Override public void onActivityPostCreated(Activity activity, Bundle savedState) { PlayInsets.apply(activity); }
+    @Override public void onActivityPostResumed(Activity activity) { PlayInsets.apply(activity); }
     @Override public void onActivityStarted(Activity activity) {}
     @Override public void onActivityPaused(Activity activity) {}
     @Override public void onActivityStopped(Activity activity) {}

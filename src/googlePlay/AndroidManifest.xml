@@ -1,0 +1,21 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"
+        tools:node="remove" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <queries>
+        <package android:name="com.android.vending" />
+    </queries>
+    <!-- Preserve search/detail back actions while migrating their predictive-back UI. -->
+    <application android:enableOnBackInvokedCallback="false">
+        <provider android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.updates"
+            tools:node="remove" />
+        <service android:name=".CallService"
+            android:foregroundServiceType="microphone|specialUse"
+            tools:replace="android:foregroundServiceType">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Optional user-enabled SIP registration and incoming-call signalling with the user's configured SIP server, which has no push service. A persistent notification exposes this listener; disabling incoming SIP stops it. Microphone foreground mode is used only for a user-initiated or answered voice call." />
+        </service>
+    </application>
+</manifest>

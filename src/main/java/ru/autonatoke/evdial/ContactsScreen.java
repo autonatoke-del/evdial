@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.app.NotificationManager;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
+import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.ContentValues;
 import android.content.Intent;
@@ -98,7 +99,8 @@ public class ContactsScreen extends Activity {
     private int favoritesCount;
     private boolean recent, automaticallyRequested;
     private int generation;
-    private boolean resumed, observingCalls, historyAvailable;
+    private boolean resumed, observingCalls, historyAvailable, hadCallLogAccess;
+    private BroadcastReceiver phoneRoleChanges;
     private final Handler changes = new Handler(Looper.getMainLooper());
     private final Runnable refreshHistory = this::reload;
     private final ContentObserver callLogChanges = new ContentObserver(changes) {
@@ -315,6 +317,7 @@ public class ContactsScreen extends Activity {
     }
     @Override protected void onPause(){
         resumed=false;
+        if(phoneRoleChanges!=null){unregisterReceiver(phoneRoleChanges);phoneRoleChanges=null;}
         updateCallObserver(false);
         changes.removeCallbacks(refreshHistory);
         generation++;filterGeneration++;
@@ -325,6 +328,7 @@ public class ContactsScreen extends Activity {
         super.onResume();
         if(shownStyle!=null&&!shownStyle.equals(UiProfiles.signature(this))){recreate();return;}
         resumed=true;phone.observer=observe;lineChanged();if(isFinishing())return;
+        if(phoneRoleChanges==null)phoneRoleChanges=PhoneRole.watch(this,this::reload);
         Appearance.applyBackground(this,body);
         chargingDecoration.setVisibility(PhoneThemes.hasSelected(this)?View.GONE:View.VISIBLE);
         Directory.invalidate();ContactAvatar.invalidateCache();reload();
@@ -361,6 +365,9 @@ public class ContactsScreen extends Activity {
         }else if(request==CHOOSE_PHONE)PhoneRole.offerSettings(this,PHONE_SETTINGS);
     }
     private void ask(String permission,int request){
+        if(Manifest.permission.READ_CALL_LOG.equals(permission)&&!PhoneRole.held(this)){
+            PhoneRole.request(this,CHOOSE_PHONE,PHONE_SETTINGS);return;
+        }
         if(getPreferences(0).getBoolean(permission,false)&&!shouldShowRequestPermissionRationale(permission)){
             open(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                     Uri.fromParts("package",getPackageName(),null)),"Откройте разрешения в настройках Android");
@@ -422,12 +429,15 @@ public class ContactsScreen extends Activity {
     }
     private void reload(){
         if(!resumed)return;
+        boolean callLogAccess=PhoneRole.canReadCallLog(this);
+        if(!callLogAccess)discardSimHistory();
+        hadCallLogAccess=callLogAccess;
         boolean includeHistory=recent||searching;
         boolean selected=includeHistory&&PhoneRole.held(this);
         gate(selected);
         int ticket=++generation;
         boolean readContacts=allowed(Manifest.permission.READ_CONTACTS);
-        boolean readCalls=selected&&allowed(Manifest.permission.READ_CALL_LOG);
+        boolean readCalls=includeHistory&&callLogAccess;
         historyAvailable=readCalls;
         updateCallObserver(readCalls);
         List<Entry> events=includeHistory?sipHistory():new ArrayList<>();
@@ -457,11 +467,36 @@ public class ContactsScreen extends Activity {
             }
             String message=issues.isEmpty()?"":"Не удалось прочитать "+TextUtils.join(" и ",issues);
             runOnUiThread(()->{if(ticket!=generation||isDestroyed())return;
+                boolean stillAllowed=PhoneRole.canReadCallLog(this);
+                if(!stillAllowed){discardSimHistory();hadCallLogAccess=false;}
                 Entry reopen=cardSelection;
-                error=message;loading=false;people=contacts;history=events;filter();
+                error=message;loading=false;people=contacts;
+                history=stillAllowed?events:withoutSimHistory(events);filter();
                 if(reopen!=null&&contactSheet!=null&&contactSheet.isShowing())subscriber(reopen);
             });
         });
+    }
+    private static List<Entry> withoutSimHistory(List<Entry> source){
+        List<Entry> result=new ArrayList<>();
+        for(Entry entry:source)if(!"SIM".equals(entry.route))result.add(entry);
+        return result;
+    }
+    private void discardSimHistory(){
+        historyAvailable=false;updateCallObserver(false);
+        history=withoutSimHistory(history);visible=withoutSimHistory(visible);
+        filterGeneration++;
+        if(pendingFilter!=null)pendingFilter.cancel(true);
+        if(pendingCard!=null&&"SIM".equals(pendingCard.route))pendingCard=null;
+        if(hadCallLogAccess){
+            cardGeneration++;
+            if(contactSheet!=null){contactSheet.setOnDismissListener(null);contactSheet.dismiss();contactSheet=null;}
+            if(historyDialog!=null){
+                historyDialog.setOnCancelListener(null);historyDialog.setOnDismissListener(null);
+                historyDialog.dismiss();historyDialog=null;
+            }
+            cardSelection=null;historySelection=null;
+        }
+        callGroupCounts.clear();adapter.notifyDataSetChanged();
     }
     private static boolean hasSameContactNumber(List<String> numbers,String candidate){
         if(TextUtils.isEmpty(candidate))return false;
@@ -530,17 +565,21 @@ public class ContactsScreen extends Activity {
         return e;
     }
     private void mobileHistory(List<Entry> result){
+        if(!PhoneRole.canReadCallLog(this))return;
+        List<Entry> pending=new ArrayList<>();
         String[] fields={CallLog.Calls.NUMBER,CallLog.Calls.DATE,CallLog.Calls.TYPE,CallLog.Calls.NUMBER_PRESENTATION,CallLog.Calls.DURATION,CallLog.Calls.CACHED_NAME};
         try(Cursor c=getContentResolver().query(CallLog.Calls.CONTENT_URI,fields,null,null,CallLog.Calls.DATE+" DESC")){
             if(c==null)throw new IllegalStateException("Нет данных");
             while(c.moveToNext()){
+                if(!PhoneRole.canReadCallLog(this))return;
                 int type=c.getInt(2);
                 String n=c.getInt(3)==CallLog.Calls.PRESENTATION_ALLOWED?c.getString(0):null;
                 Entry event=call(n,c.getLong(1),type==CallLog.Calls.OUTGOING_TYPE,type==CallLog.Calls.MISSED_TYPE,"SIM");
                 if(n!=null&&!TextUtils.isEmpty(c.getString(5)))event.title=c.getString(5);
-                if(!c.isNull(4))event.durationSeconds=c.getLong(4);result.add(event);
+                if(!c.isNull(4))event.durationSeconds=c.getLong(4);pending.add(event);
             }
         }
+        if(PhoneRole.canReadCallLog(this))result.addAll(pending);
     }
     private static String digits(String s){return PhoneNumberUtils.normalizeNumber(s);}
     private static String lookupKey(String number){
@@ -603,6 +642,7 @@ public class ContactsScreen extends Activity {
         });
     }
     private void showResults(List<Entry> result,SearchTerm term){
+        if(!PhoneRole.canReadCallLog(this))result=withoutSimHistory(result);
         boolean scoped=term!=null;
         if(!searching&&term==null&&direction==0)renderFavorites();
         else if(favoritesPanel!=null)favoritesPanel.setVisibility(View.GONE);
@@ -710,6 +750,7 @@ public class ContactsScreen extends Activity {
              .setNegativeButton("Отмена",null).show();
     }
     private void pick(Entry e,String number,boolean direct){
+        if("SIM".equals(e.route)&&!PhoneRole.canReadCallLog(this)){reload();return;}
         if(TextUtils.isEmpty(number))return;
         setResult(RESULT_OK,new Intent().putExtra("number",number).putExtra("name",e.title)
                 .putExtra("route",e.route).putExtra("directCall",direct));finish();
@@ -807,7 +848,10 @@ public class ContactsScreen extends Activity {
         }catch(RuntimeException unavailable){return fallback;}
     }
 
-    private void showHistory(Entry selected,List<Entry> events){
+    private void showHistory(Entry selected,List<Entry> source){
+        boolean readCalls=PhoneRole.canReadCallLog(this);
+        if("SIM".equals(selected.route)&&!readCalls){reload();return;}
+        final List<Entry> events=readCalls?source:withoutSimHistory(source);
         if(historyDialog!=null){historyDialog.setOnCancelListener(null);historyDialog.dismiss();}
         android.app.Dialog dialog=new android.app.Dialog(this);
         historyDialog=dialog;historySelection=selected;
@@ -873,12 +917,13 @@ public class ContactsScreen extends Activity {
     }
     private void subscriber(Entry e){
         if(isFinishing()||isDestroyed())return;
+        if("SIM".equals(e.route)&&!PhoneRole.canReadCallLog(this)){reload();return;}
         final int ticket=++cardGeneration;
         StationSheet opening=new StationSheet.Builder(this).setTitle(e.title)
                 .setMessage("Загрузка карточки…").setNegativeButton("Закрыть",null).create();
         presentCard(opening,e);
         final boolean haveHistory=recent||searching;
-        final boolean readCalls=PhoneRole.held(this)&&allowed(Manifest.permission.READ_CALL_LOG);
+        final boolean readCalls=PhoneRole.canReadCallLog(this);
         final boolean historyReadFailed=haveHistory&&error.contains("журнал SIM");
         final List<Entry> events=new ArrayList<>();
         if(haveHistory)events.addAll(history);
@@ -894,7 +939,9 @@ public class ContactsScreen extends Activity {
             final boolean complete=readCalls&&!callReadFailed&&!historyReadFailed;
             runOnUiThread(()->{
                 if(ticket!=cardGeneration||contactSheet!=opening||!opening.isShowing()||!resumed||isFinishing()||isDestroyed())return;
-                renderSubscriber(e,person,related,complete);
+                boolean stillAllowed=PhoneRole.canReadCallLog(this);
+                if("SIM".equals(e.route)&&!stillAllowed){opening.dismiss();reload();return;}
+                renderSubscriber(e,person,stillAllowed?related:withoutSimHistory(related),complete&&stillAllowed);
             });
         });
     }

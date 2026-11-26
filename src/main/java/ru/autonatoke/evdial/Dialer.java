@@ -40,7 +40,8 @@ public class Dialer extends Activity {
  private final android.os.Handler smartUi=new android.os.Handler(android.os.Looper.getMainLooper());
  private Runnable smartPending;
  private int smartQueryGeneration,smartLoadGeneration;
- private boolean smartLoaded,smartResumed;
+ private boolean smartLoaded,smartResumed,smartCallsAllowed;
+ private BroadcastReceiver phoneRoleChanges;
  IncomingReply incomingReply;
  SpeedDial speedDial;
  String pending,lookupNumber="",knownName="";
@@ -429,15 +430,30 @@ public class Dialer extends Activity {
  }
  private void loadSmartIndex(){
   if(smartWorker.isShutdown())return;
-  final int ticket=++smartLoadGeneration;
+  invalidateSmartIndex();
+  final int ticket=smartLoadGeneration;
+  final boolean callsAllowed=PhoneRole.canReadCallLog(this);
   smartWorker.execute(()->{
    java.util.List<SmartDialSearch.Entry> fresh=SmartDialIndex.load(getApplicationContext());
    runOnUiThread(()->{
     if(ticket!=smartLoadGeneration||isFinishing()||isDestroyed())return;
+    if(callsAllowed!=PhoneRole.canReadCallLog(this)){loadSmartIndex();return;}
+    smartCallsAllowed=callsAllowed;
     smartEntries=fresh;smartLoaded=true;
     scheduleSmartSearch();
    });
   });
+ }
+ private void invalidateSmartIndex(){
+  smartLoadGeneration++;smartQueryGeneration++;
+  smartLoaded=false;smartEntries=java.util.Collections.emptyList();
+  if(smartPending!=null)smartUi.removeCallbacks(smartPending);
+  dismissSmartMatches();clearSmartSuggestions();
+ }
+ private boolean currentSmartIndex(){
+  if(!smartLoaded)return false;
+  if(smartCallsAllowed==PhoneRole.canReadCallLog(this))return true;
+  loadSmartIndex();return false;
  }
  private void scheduleSmartSearch(){
   if(smartPanel==null||number==null)return;
@@ -448,12 +464,13 @@ public class Dialer extends Activity {
   if(!smartResumed)return;
   final String query=number.getText().toString();
   smartPending=()->{
-   if(!smartLoaded||smartWorker.isShutdown())return;
+   if(!currentSmartIndex()||smartWorker.isShutdown())return;
    final java.util.List<SmartDialSearch.Entry> snapshot=smartEntries;
    smartWorker.execute(()->{
     SmartDialSearch.Matches results=SmartDialSearch.search(query,snapshot);
     runOnUiThread(()->{
      if(!smartResumed||ticket!=smartQueryGeneration||isFinishing()||isDestroyed()||!number.getText().toString().equals(query))return;
+     if(!currentSmartIndex())return;
      smartMatches=results;
      renderSmartSuggestions(results);
     });
@@ -468,7 +485,7 @@ public class Dialer extends Activity {
   return count+" "+word;
  }
  private void renderSmartSuggestions(SmartDialSearch.Matches results){
-  if(smartPanel==null)return;
+  if(smartPanel==null||!currentSmartIndex())return;
   // Bind even during a call so returning to idle never reveals disabled, stale actions.
   smartPanel.setVisibility(phone.active!=null?View.GONE:View.VISIBLE);
   smartPrimary.setEnabled(true);
@@ -506,14 +523,14 @@ public class Dialer extends Activity {
   }
  }
  private void applySmartSelection(SmartDialSearch.Entry candidate,boolean call){
-  if(candidate==null||callBlocksNumberActions())return;
+  if(candidate==null||callBlocksNumberActions()||!currentSmartIndex())return;
   number.setText(candidate.number);
   number.setSelection(number.length());
   lookupName(candidate.number);
   if(call)startOutgoing();
  }
  private void openSmartContact(SmartDialSearch.Entry candidate){
-  if(candidate==null||callBlocksNumberActions())return;
+  if(candidate==null||callBlocksNumberActions()||!currentSmartIndex())return;
   if(candidate.contactUri.isEmpty()){
    openDirectory(true,false,candidate.number);
    return;
@@ -530,7 +547,7 @@ public class Dialer extends Activity {
   if(dialog!=null)dialog.dismiss();
  }
  private void showSmartMatches(SmartDialSearch.Matches results){
-  if(results==null||results.items.isEmpty()||callBlocksNumberActions())return;
+  if(results==null||results.items.isEmpty()||callBlocksNumberActions()||!currentSmartIndex())return;
   dismissSmartMatches();
   android.app.Dialog dialog=new android.app.Dialog(this);
   smartDialog=dialog;
@@ -874,8 +891,7 @@ public class Dialer extends Activity {
    requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO},5);
    return;
   }
-  phone.sipCore().setMicEnabled(true);
-  if(target.accept()!=0)note("Не удалось принять звонок");
+  if(phone.accept(target)!=0)note("Не удалось принять звонок");
  }
  private void switchSipSpeaker(){
   Call target=shownCall;
@@ -969,6 +985,7 @@ public class Dialer extends Activity {
  protected void onResume(){
   super.onResume();
   smartResumed=true;
+  if(phoneRoleChanges==null)phoneRoleChanges=PhoneRole.watch(this,this::loadSmartIndex);
   if(shownStyle!=null&&!shownStyle.equals(UiProfiles.signature(this))){recreate();return;}
   DriveTools.background(this,findViewById(android.R.id.custom));
   if(phone.listening())phone.updateService();phone.observer=this::refresh;refresh();
@@ -977,11 +994,9 @@ public class Dialer extends Activity {
  protected void onPause(){
   phone.observer=null;
   smartResumed=false;
-  smartQueryGeneration++;smartLoadGeneration++;
-  if(smartPending!=null)smartUi.removeCallbacks(smartPending);
-  dismissSmartMatches();
+  if(phoneRoleChanges!=null){unregisterReceiver(phoneRoleChanges);phoneRoleChanges=null;}
+  invalidateSmartIndex();
   dismissHeaderPanels();
-  clearSmartSuggestions();
   super.onPause();
  }
  @Override protected void onDestroy(){
@@ -1111,13 +1126,15 @@ public class Dialer extends Activity {
    {"Темы и фон"},
    {"SIP-линия","Звонки через SIM","Входящие на экране блокировки"},
    {"Стартовый экран","Поворот экрана"},
-   {"Проверить обновления"}
+   {"Проверить обновления","Политика конфиденциальности"}
   };
   final Runnable[][] actions={
    {()->PhoneAppearance.show(this)},
    {()->configureSip(),()->defaultPhone(),()->showCallDisplay(false)},
    {()->chooseStart(),()->ScreenOrientation.choose(this)},
-   {()->AppUpdates.open(this)}
+   {()->AppUpdates.open(this),()->openNumberAction(this,
+       new Intent(Intent.ACTION_VIEW,Uri.parse("https://autonatoke.ru/evdial/privacy/")),
+       "На устройстве нет браузера")}
   };
   LinearLayout content=new LinearLayout(this);
   content.setOrientation(LinearLayout.VERTICAL);

@@ -177,6 +177,7 @@ public class QuickSms extends DialogFragment {
         Activity a=getActivity();
         if(!files.isEmpty()){openMms();return;}
         if(a==null || !job.isEmpty() || asking || draft.getText().toString().trim().isEmpty())return;
+        if(!PhoneRole.held(a)){compose();return;}
         if(sim()<0){
             note="Выберите SIM в приложении сообщений или назначьте SIM для SMS в настройках телефона.";
             refresh();return;
@@ -190,11 +191,17 @@ public class QuickSms extends DialogFragment {
         super.onRequestPermissionsResult(req,permissions,results);
         if(req!=ASK || !asking)return;
         asking=false;
+        Activity a=getActivity();if(a==null)return;
+        if(!PhoneRole.held(a)){compose();return;}
         if(results.length>0 && results[0]==PackageManager.PERMISSION_GRANTED){send();return;}
         denied=true;note="Разрешите отправку SMS или откройте переписку с этим черновиком.";refresh();
     }
     private void send(){
         Activity a=getActivity();if(a==null || !job.isEmpty())return;
+        if(!PhoneRole.held(a)){compose();return;}
+        if(a.checkSelfPermission(Manifest.permission.SEND_SMS)!=PackageManager.PERMISSION_GRANTED){
+            denied=true;note="Разрешите отправку SMS или откройте переписку с этим черновиком.";refresh();return;
+        }
         int id=sim();if(id<0){note="Выберите SIM для SMS в приложении сообщений.";refresh();return;}
         try{
             SmsManager manager=SmsManager.getSmsManagerForSubscriptionId(id);
@@ -214,6 +221,11 @@ public class QuickSms extends DialogFragment {
                 }
             }
             ed.putLong(job+".time",now).putInt(job+".total",parts.size()).commit();
+            // Recheck after preparing callbacks/persisting state, immediately before using SMS.
+            if(!PhoneRole.held(a)){
+                p.edit().remove(job+".time").remove(job+".total").apply();job="";
+                compose();return;
+            }
             refresh();
             if(parts.size()==1)manager.sendTextMessage(number,null,parts.get(0),callbacks.get(0),null);
             else manager.sendMultipartTextMessage(number,null,parts,callbacks,null);
@@ -240,9 +252,11 @@ public class QuickSms extends DialogFragment {
             submit.setVisibility(View.VISIBLE);submit.setText("Открыть в Сообщениях");submit.setEnabled(true);submit.setAlpha(1f);
             return false;
         }
-        submit.setText("Отправить SMS");thread.setText("В переписку");
+        boolean direct=PhoneRole.held(a);
+        submit.setText(direct?"Отправить SMS":"Открыть в Сообщениях");thread.setText("В переписку");
         int sub=sim();
-        String msg=note.isEmpty()?(sub<0?"Выберите SIM в приложении сообщений.":"SMS через SIM по тарифу оператора."):note;
+        String msg=note.isEmpty()?(!direct?"Проверьте и отправьте сообщение в приложении сообщений.":
+                sub<0?"Выберите SIM в приложении сообщений.":"SMS через SIM по тарифу оператора."):note;
         if(!job.isEmpty()){
             SharedPreferences p=store(a);
             int total=p.getInt(job+".total",0),seen=p.getInt(job+".seen",0),ok=p.getInt(job+".ok",0);
@@ -255,7 +269,7 @@ public class QuickSms extends DialogFragment {
         }
         if(!msg.contentEquals(status.getText()))status.setText(msg);
         draft.setEnabled(job.isEmpty()&&!asking);
-        boolean fallback=job.isEmpty()&&(denied || sub<0);
+        boolean fallback=job.isEmpty()&&direct&&(denied || sub<0);
         submit.setVisibility(job.isEmpty()&&!fallback?View.VISIBLE:View.GONE);
         boolean active=!asking && draft.getText().toString().trim().length()>0;
         submit.setEnabled(active);submit.setAlpha(active?1f:0.52f);
