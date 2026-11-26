@@ -8,7 +8,9 @@
 
 ## Variants and distributions
 
-The application is a **website-distributed preview**, not a Google Play/RuStore publication. The manifest contains `REQUEST_INSTALL_PACKAGES` solely for the manual, verified website-update flow. A store release may require a separate flavor without that permission and must follow store rules.
+The default application build is a **website-distributed preview**, not a Google Play/RuStore publication. Its manifest contains `REQUEST_INSTALL_PACKAGES` solely for the manual, verified website-update flow.
+
+The optional `-Pfdroid=true` build requires `-PlinphoneAar=/absolute/path/to/source-built.aar`. It disables the Linphone Maven dependency, removes the APK installation permission and update FileProvider from debug and release manifests, and shows repository-update guidance instead of the website updater. It does not silently fall back to the binary Maven SDK. This build mode is preparation for review, **not evidence of official F-Droid acceptance or a completed source build**. See [the F-Droid preparation guide](docs/F-DROID.md).
 
 `applicationId=ru.autonatoke.evdial.design`, `minSdk=26`, `targetSdk=33` in the historical releases. Those settings should only be changed with device and store-policy testing. The APK bundles Linphone native libraries for ARM32, ARM64, and x86_64.
 
@@ -32,7 +34,7 @@ gradle testDebugUnitTest --tests ru.autonatoke.evdial.BatteryCallControlTest
 
 The keypad layout suite uses Robolectric Native Graphics on Android API 34 and saves renderings under `build/reports/keypad/`. It creates the real keypad component with a plain Android Application, without starting SIP or placing calls.
 
-The typing layout suite runs the actual Dialer Activity with synthetic local contacts. Its 12 configurations cover portrait screens from 320×568dp through 393×873dp, system fonts up to 200%, app scale up to 150%, and EV/Rubina/Minimal themes. Every scenario checks that the number field, all 12 keys and the call button are fully visible above navigation with at least 48dp touch targets. It also verifies stable positions during edits and asynchronous search, independent upper-area scrolling, line-selection and EV-services panels, and upgrading from the old expanded-services preference. A test application prevents telephony and service activation; stale result actions must be unavailable while a new search is pending.
+The typing layout suite runs the actual Dialer Activity with synthetic local contacts. Its 12 configurations cover portrait screens from 320×568dp through 393×873dp, system fonts up to 200%, app scale up to 150%, and the supported themes. Every scenario checks that the number field, all 12 keys and the call button are fully visible above navigation with at least 48dp touch targets. It also verifies stable positions during edits and asynchronous search, independent upper-area scrolling, line-selection and EV-services panels, and upgrading from the old expanded-services preference. A test application prevents telephony and service activation; stale result actions must be unavailable while a new search is pending.
 
 The battery-control suite has eight incoming/ongoing scenarios across 320/360/393dp widths and system fonts up to 200%. It checks red/green lightning rendering, complete button and caption visibility, minimum touch targets, enabled/ringing/debounce guards and left/right/cancelled drags using callback counters only. Four native control previews are saved in the same report directory.
 

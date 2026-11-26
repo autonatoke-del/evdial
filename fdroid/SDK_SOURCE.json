@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "status": "candidate-not-yet-built",
+  "sdk": {
+    "version": "5.4.128",
+    "repository": "https://gitlab.linphone.org/BC/public/linphone-sdk.git",
+    "mirror": "https://github.com/BelledonneCommunications/linphone-sdk",
+    "commit": "ce38159e55897c695b7095019b5a1ff612bb181f",
+    "annotatedTagObject": "23f87dccf055ba8a3ee3e96769b7cb5645cdf855",
+    "liblinphoneCommit": "df95d846913d8f04d2b48ee05f9089e272dfc10f",
+    "submodules": "All recursive submodules must already be initialized at the revisions recorded by the pinned source tree."
+  },
+  "toolchain": {
+    "helperPythonMinimum": "3.9",
+    "javaMajor": 17,
+    "cmakeMinimum": "3.22",
+    "ndkMajor": 27,
+    "sdkGradle": "8.11.1",
+    "sdkAndroidGradlePlugin": "8.0.0",
+    "sdkCompileApi": 31,
+    "appGradle": "8.13",
+    "appAndroidGradlePlugin": "8.7.3",
+    "appCompileApi": 35,
+    "hostCommands": ["git", "cmake", "make", "cc", "c++", "doxygen", "meson", "nasm", "pkg-config", "yasm"],
+    "pythonModules": ["pystache", "six"]
+  },
+  "preset": "android-sdk",
+  "buildType": "Release",
+  "architectures": ["arm64", "armv7", "x86_64"],
+  "androidAbis": ["arm64-v8a", "armeabi-v7a", "x86_64"],
+  "minimalFeatureFlags": [
+    "-DENABLE_VIDEO=OFF",
+    "-DENABLE_ADVANCED_IM=OFF",
+    "-DENABLE_DB_STORAGE=OFF",
+    "-DENABLE_VCARD=OFF",
+    "-DENABLE_MKV=OFF",
+    "-DENABLE_CAMERA2=OFF",
+    "-DENABLE_ASSETS=OFF",
+    "-DENABLE_LIME_X3DH=OFF",
+    "-DENABLE_QRCODE=OFF",
+    "-DENABLE_JPEG=OFF",
+    "-DENABLE_ZLIB=OFF",
+    "-DENABLE_SQLITE=OFF",
+    "-DENABLE_XML2=OFF",
+    "-DENABLE_ZRTP=OFF"
+  ],
+  "additionalFeatureFlags": [
+    "-DENABLE_NON_FREE_FEATURES=OFF",
+    "-DENABLE_TUNNEL=OFF",
+    "-DENABLE_EKT_SERVER_PLUGIN=OFF"
+  ],
+  "aarRelativePath": "linphone-sdk/bin/outputs/aar/linphone-sdk-android-release.aar",
+  "firebaseRemoval": {
+    "directory": "liblinphone/wrappers/java/classes/org/linphone/core/tools/firebase",
+    "javaFile": "liblinphone/wrappers/java/classes/org/linphone/core/tools/PushNotificationUtils.java",
+    "removeJavaLines": ["import com.google.firebase.FirebaseApp;", "FirebaseApp.initializeApp(context);"],
+    "gradleFile": "cmake/Android/gradle/build.gradle.cmake",
+    "removeGradleLine": "compileOnly 'com.google.firebase:firebase-messaging:23.0.6'"
+  },
+  "sources": {
+    "tag": "https://api.github.com/repos/BelledonneCommunications/linphone-sdk/git/tags/23f87dccf055ba8a3ee3e96769b7cb5645cdf855",
+    "minimalFlags": "https://github.com/BelledonneCommunications/linphone-sdk/blob/5.4.128/.gitlab-ci-files/android/builds.yml",
+    "presets": "https://github.com/BelledonneCommunications/linphone-sdk/blob/5.4.128/CMakePresets.json",
+    "options": "https://github.com/BelledonneCommunications/linphone-sdk/blob/5.4.128/cmake/Options.cmake",
+    "androidToolchain": "https://github.com/BelledonneCommunications/linphone-sdk/blob/5.4.128/cmake/CheckBuildToolsAndroid.cmake",
+    "sdkGradle": "https://github.com/BelledonneCommunications/linphone-sdk/blob/5.4.128/cmake/Android/gradle/build.gradle.cmake",
+    "sdkWrapper": "https://github.com/BelledonneCommunications/linphone-sdk/blob/5.4.128/cmake/Android/gradle/wrapper/gradle-wrapper.properties",
+    "pushNotificationSource": "https://github.com/BelledonneCommunications/liblinphone/blob/df95d846913d8f04d2b48ee05f9089e272dfc10f/wrappers/java/classes/org/linphone/core/tools/PushNotificationUtils.java",
+    "fdroidLinphoneRecipe": "https://github.com/f-droid/fdroiddata/blob/master/metadata/org.linphone.yml",
+    "fdroidSimlarRecipe": "https://github.com/f-droid/fdroiddata/blob/master/metadata/org.simlar.yml",
+    "fdroidSourceLibrary": "https://github.com/f-droid/fdroiddata/blob/master/srclibs/linphone-sdk.yml"
+  },
+  "limitations": [
+    "This is a source-grounded candidate, not a completed or reproducible build claim.",
+    "Source cleanup follows the official Linphone F-Droid recipe; the wrapper replacement is an EVDial packaging adaptation.",
+    "The helper never fetches source or downloads a prebuilt Linphone AAR. Supply source, recursive submodules and installed tools separately.",
+    "Gradle is offline by default. FDROID_GRADLE_OFFLINE=0 permits normal dependency resolution during an approved provisioning/build stage; network isolation belongs to the build runner.",
+    "Full source scanner results, Android SDK/build-tools provisioning, dependency caches, artwork/data licensing and final APK verification are still required.",
+    "The minimal flags do not establish byte-for-byte equivalence with the published org.linphone.minimal AAR; local AAR consumption avoids relying on its Maven group."
+  ]
+}

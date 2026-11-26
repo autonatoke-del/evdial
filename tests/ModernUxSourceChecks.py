@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Source-only regression checks for EVDial 0.3.3-rc6 UX patch.
+"""Source-only regression checks for EVDial 0.3.3-rc7 UX patch.
 
 No calls, network, signing keys, Android emulator, or publishing involved.
 """
@@ -16,7 +16,7 @@ callcontrol = (java / "BatteryCallControl.java").read_text(encoding="utf-8")
 checks = {
     "dialer_is_native": "class Dialer extends Activity" in dial,
     "package_unchanged": "ru.autonatoke.evdial.design" in gradle,
-    "version_20": "versionCode 20" in gradle and "versionName '0.3.3-rc6'" in gradle,
+    "version_21": "versionCode 21" in gradle and "versionName '0.3.3-rc7'" in gradle,
     "original_sdk_baseline": "minSdk 26; targetSdk 33" in gradle,
     "no_new_manifest_permission": "READ_CONTACTS" in manifest and "BIND_INCALL_SERVICE" in manifest,
     "ev_shortcuts_on_demand": dial.count("links=ElectricUi.shortcuts(this)") == 1

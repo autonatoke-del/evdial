@@ -32,7 +32,7 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/** Website-distributed preview builds only. No background checks or unattended installs. */
+/** Website previews update on request; repository builds delegate updates to their client. */
 public final class AppUpdates extends Activity {
     private static final int UNKNOWN_SOURCE = 6220;
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
@@ -45,7 +45,36 @@ public final class AppUpdates extends Activity {
     private long installed;
     private String installedName;
 
-    static void open(Activity activity) { activity.startActivity(new Intent(activity, AppUpdates.class)); }
+    static void open(Activity activity) {
+        if (BuildConfig.FDROID_BUILD) {
+            new StationSheet.Builder(activity)
+                .setTitle(ElectricUi.tr(activity, "Обновления F-Droid", "F-Droid updates"))
+                .setMessage(repositoryGuidance(activity))
+                .setPositiveButton(ElectricUi.tr(activity, "Открыть F-Droid", "Open F-Droid"),
+                        (dialog, which) -> openRepositoryClient(activity))
+                .setNegativeButton(ElectricUi.tr(activity, "Закрыть", "Close"), null).show();
+            return;
+        }
+        activity.startActivity(new Intent(activity, AppUpdates.class));
+    }
+    private static String repositoryGuidance(Activity activity) {
+        return ElectricUi.tr(activity,
+                "Обновляйте EVDial через тот репозиторий, откуда установили приложение. Откройте F-Droid и проверьте обновления там. Если клиент не установлен, откроется сайт F-Droid.",
+                "Update EVDial through the repository you installed it from. Open F-Droid and check for updates there. If the client is not installed, the F-Droid website will open.");
+    }
+    private static void openRepositoryClient(Activity activity) {
+        Intent client = activity.getPackageManager().getLaunchIntentForPackage("org.fdroid.fdroid");
+        if (client != null) {
+            try { activity.startActivity(client); return; }
+            catch (ActivityNotFoundException | SecurityException ignored) {}
+        }
+        try { activity.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://f-droid.org/"))); }
+        catch (ActivityNotFoundException | SecurityException e) {
+            android.widget.Toast.makeText(activity, ElectricUi.tr(activity,
+                    "Нет приложения для открытия F-Droid.", "No application can open F-Droid."),
+                    android.widget.Toast.LENGTH_LONG).show();
+        }
+    }
     static String version(Activity activity) {
         try { return activity.getPackageManager().getPackageInfo(activity.getPackageName(), 0).versionName; }
         catch (PackageManager.NameNotFoundException e) { return "—"; }
@@ -62,6 +91,12 @@ public final class AppUpdates extends Activity {
         add(root, ElectricUi.button(this, tr("‹  К телефону", "‹  Back to phone"), this::finish), 0);
         add(root, ElectricUi.text(this, tr("Обновления EVDial", "EVDial updates"), 28, ElectricUi.WHITE, true), 22);
         add(root, ElectricUi.text(this, tr("Установлена версия ", "Installed version ") + installedName, 16, ElectricUi.CYAN, true), 10);
+        if (BuildConfig.FDROID_BUILD) {
+            add(root, ElectricUi.text(this, repositoryGuidance(this), 16, ElectricUi.MUTED, false), 22);
+            add(root, ElectricUi.button(this, tr("Открыть F-Droid", "Open F-Droid"),
+                    () -> openRepositoryClient(this)), 20);
+            return;
+        }
         add(root, ElectricUi.text(this, tr("Канал: тестовые версии с нашего сервера", "Channel: previews from our server"), 14, ElectricUi.MUTED, false), 6);
         state = ElectricUi.text(this, tr("Нажмите «Проверить обновления».", "Tap Check for updates."), 18, ElectricUi.WHITE, true); add(root, state, 22);
         details = ElectricUi.text(this, "", 15, ElectricUi.MUTED, false); add(root, details, 12);
@@ -78,6 +113,7 @@ public final class AppUpdates extends Activity {
         controls(); restore();
     }
     private void restore() {
+        if (BuildConfig.FDROID_BUILD) return;
         String json = getPreferences(MODE_PRIVATE).getString("pending", "");
         if (json.isEmpty()) return;
         try {
@@ -88,6 +124,7 @@ public final class AppUpdates extends Activity {
         } catch (Exception ignored) { getPreferences(MODE_PRIVATE).edit().remove("pending").apply(); }
     }
     private void check() {
+        if (BuildConfig.FDROID_BUILD) return;
         if (busy) return;
         setBusy(true); state.setText(tr("Проверяю версию на сервере…", "Checking the server…"));
         worker.execute(() -> {
@@ -108,12 +145,14 @@ public final class AppUpdates extends Activity {
         details.setText(tr("Версия ", "Version ") + offered.name + " · " + String.format(Locale.getDefault(), "%.1f", offered.bytes / 1000000.0) + " MB\n\n" + offered.notes);
     }
     private void confirmDownload() {
+        if (BuildConfig.FDROID_BUILD) return;
         if (busy || offered == null || !UpdateRules.newer(installed, offered.version)) return;
         new StationSheet.Builder(this).setTitle(tr("Скачать обновление?", "Download update?"))
             .setMessage(tr("Будет использован интернет: ", "Download size: ") + String.format(Locale.getDefault(), "%.1f MB", offered.bytes / 1000000.0))
             .setPositiveButton(tr("Скачать", "Download"), (d, w) -> download()).setNegativeButton(tr("Отмена", "Cancel"), null).show();
     }
     private void download() {
+        if (BuildConfig.FDROID_BUILD) return;
         if (busy || offered == null) return;
         final Candidate c = offered; ready = null; setBusy(true); state.setText(tr("Загружаю…", "Downloading…"));
         worker.execute(() -> {
@@ -149,6 +188,7 @@ public final class AppUpdates extends Activity {
         });
     }
     private void confirmInstall() {
+        if (BuildConfig.FDROID_BUILD) return;
         if (busy || ready == null || offered == null) return;
         if (inCall()) { state.setText(tr("Сначала завершите звонок. Обновление подождёт.", "Finish your call first. The update can wait.")); return; }
         if (!getPackageManager().canRequestPackageInstalls()) {
@@ -193,6 +233,7 @@ public final class AppUpdates extends Activity {
         } finally { h.disconnect(); connection = null; }
     }
     private HttpURLConnection connect(String address) throws Exception {
+        if (BuildConfig.FDROID_BUILD) throw new IOException("Updates are managed by the repository client");
         ensureActive();
         if (!UpdateRules.FEED.equals(address)) UpdateRules.apkUrl(address);
         HttpURLConnection h = (HttpURLConnection) new URL(address).openConnection(); connection = h;

@@ -80,7 +80,7 @@ public final class DialerTypingLayoutTest {
         return Arrays.asList(new Object[][]{
                 {320, 568, 1f, 100, UiProfiles.EV},
                 {320, 640, 1f, 100, UiProfiles.EV},
-                {360, 640, 1f, 100, UiProfiles.RUBINA},
+                {360, 640, 1f, 100, UiProfiles.LIGHT},
                 {360, 740, 1f, 100, UiProfiles.EV},
                 {393, 800, 1f, 100, UiProfiles.MINIMAL},
                 {393, 873, 1f, 100, UiProfiles.EV},

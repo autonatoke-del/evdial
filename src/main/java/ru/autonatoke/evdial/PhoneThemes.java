@@ -41,7 +41,7 @@ public final class PhoneThemes {
     public static String selectedId(Context context){
         String profile=UiProfiles.id(context);
         String key=UiProfiles.EV.equals(profile)?KEY:KEY+"_"+profile;
-        String def=UiProfiles.RUBINA.equals(profile)?"carbon":UiProfiles.LIGHT.equals(profile)?"ice":UiProfiles.PEARL.equals(profile)?"aurora":"neon";
+        String def=UiProfiles.LIGHT.equals(profile)?"ice":UiProfiles.PEARL.equals(profile)?"aurora":"neon";
         String id=context.getSharedPreferences(PREFS,Context.MODE_PRIVATE).getString(key,def);
         return find(id)==null?"":id;
     }
