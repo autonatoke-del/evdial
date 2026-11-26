@@ -23,7 +23,7 @@ import android.widget.TextView;
 
 /** Charge right to answer, discharge left to decline or hang up. */
 public final class BatteryCallControl extends LinearLayout {
-    private static final int GREEN = 0xff9df2bd, RED = 0xffff9b87;
+    private static final int GREEN = 0xff65ed9d, RED = 0xffff625f;
     private final Runnable answer, end;
     private final Track track;
     private final Button negative, positive;
@@ -54,6 +54,10 @@ public final class BatteryCallControl extends LinearLayout {
         hint.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
         hint.setText("Сдвиньте трубку влево");
         hint.setPadding(dp(4), 0, dp(4), 0);
+        hint.setMaxLines(2);
+        hint.setAutoSizeTextTypeUniformWithConfiguration(dp(10),
+                Math.max(dp(11), Math.round(hint.getTextSize())), 1,
+                android.util.TypedValue.COMPLEX_UNIT_PX);
         hint.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
         captions.addView(negative, captionSlot());
         captions.addView(positive, captionSlot());
@@ -66,7 +70,7 @@ public final class BatteryCallControl extends LinearLayout {
     }
 
     private LayoutParams captionSlot() {
-        return new LayoutParams(0, LayoutParams.WRAP_CONTENT, 1);
+        return new LayoutParams(0, dp(76), 1);
     }
 
     private Button caption(boolean accept) {
@@ -76,18 +80,30 @@ public final class BatteryCallControl extends LinearLayout {
         GradientDrawable mask = new GradientDrawable();
         mask.setCornerRadius(dp(12));
         mask.setColor(Color.WHITE);
-        button.setBackground(new RippleDrawable(ColorStateList.valueOf(0x40599470), null, mask));
+        button.setBackground(new RippleDrawable(ColorStateList.valueOf(accept ? 0x3365ed9d : 0x33ff625f), null, mask));
         button.setAllCaps(false);
         button.setLetterSpacing(0);
         button.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-        button.setTextSize(17);
-        button.setTextColor(accept ? UiProfiles.accent(getContext()) : RED);
-        button.setText(accept ? "☎  Ответить" : "✕  Отклонить");
-        button.setGravity((accept ? Gravity.RIGHT : Gravity.LEFT) | Gravity.CENTER_VERTICAL);
+        button.setTextSize(14);
+        button.setTextColor(accept ? GREEN : RED);
+        button.setText(accept ? "Принять" : "Отклонить");
+        button.setContentDescription(accept ? "Принять входящий звонок" : "Отклонить входящий звонок");
+        button.setGravity(Gravity.CENTER);
+        button.setSingleLine(true);
+        button.setHorizontallyScrolling(false);
+        button.setAutoSizeTextTypeUniformWithConfiguration(dp(11),
+                Math.max(dp(12), Math.round(button.getTextSize())), 1,
+                android.util.TypedValue.COMPLEX_UNIT_PX);
+        // Each action owns its tint; no vendor emoji or shared mutable drawable state.
+        Drawable lightning = getContext().getDrawable(R.drawable.call_lightning).mutate();
+        lightning.setTint(accept ? GREEN : RED);
+        lightning.setBounds(0, 0, dp(30), dp(36));
+        button.setCompoundDrawables(null, lightning, null, null);
+        button.setCompoundDrawablePadding(dp(3));
         button.setMinWidth(0);
         button.setMinimumWidth(0);
-        button.setMinHeight(dp(64));
-        button.setPadding(dp(12), dp(6), dp(12), dp(6));
+        button.setMinHeight(dp(76));
+        button.setPadding(dp(8), dp(5), dp(8), dp(5));
         button.setOnClickListener(v -> commit(accept));
         return button;
     }
@@ -101,9 +117,9 @@ public final class BatteryCallControl extends LinearLayout {
     }
 
     private void updateMode() {
-        negative.setText(ringing ? "☎  Отклонить" : "☎  Завершить вызов");
-        negative.setTextColor(ringing ? RED : 0xffff625f);
-        negative.setContentDescription(ringing ? "Отклонить входящий звонок" : "Завершить разговор");
+        negative.setText(ringing ? "Отклонить" : "Завершить");
+        negative.setTextColor(RED);
+        negative.setContentDescription(ringing ? "Отклонить входящий звонок" : "Завершить вызов");
         positive.setVisibility(ringing ? VISIBLE : GONE);
         hint.setVisibility(ringing ? GONE : VISIBLE);
         track.invalidate();
@@ -169,15 +185,16 @@ public final class BatteryCallControl extends LinearLayout {
             super.onDraw(canvas);
             canvas.save();
             canvas.scale(density, density);
-            float width = getWidth() / density, bodyEnd = width - 11;
+            float width = getWidth() / density, bodyEnd = width - 14;
             float knob = handleX(), amount = Math.min(1f, Math.abs(travel) * reach() / commitDistance());
             float charge = (1f + Math.signum(travel) * amount) * .5f;
             int direction = travel < 0 ? RED : UiProfiles.accent(getContext());
             int rim = blend(0xff527061, direction, amount * .7f);
 
-            fill(canvas, bodyEnd - 1, 23, width - 1, 49, 3, rim);
-            fill(canvas, 1, 4, bodyEnd, 68, 15, rim);
-            fill(canvas, 3, 6, bodyEnd - 2, 66, 13, 0xff101b16);
+            // A thicker body and a distinct terminal use the existing track space.
+            fill(canvas, bodyEnd - 1, 27, width - 1, 57, 3, rim);
+            fill(canvas, 1, 4, bodyEnd, 80, 11, rim);
+            fill(canvas, 4, 7, bodyEnd - 3, 77, 8, 0xff101b16);
 
             final int segments = 10;
             float start = 10, gap = 3, span = bodyEnd - 2 * start;
@@ -185,38 +202,38 @@ public final class BatteryCallControl extends LinearLayout {
             int energized = blend(ringing ? 0xff315746 : 0xff346749, direction, amount * .70f);
             for (int i = 0; i < segments; i++) {
                 float x = start + i * (cell + gap), fraction = Math.max(0, Math.min(1, charge * segments - i));
-                fill(canvas, x, 13, x + cell, 59, 4, 0xff1d3027);
+                fill(canvas, x, 15, x + cell, 69, 4, 0xff1d3027);
                 if (fraction > 0) {
                     canvas.save();
-                    canvas.clipRect(x, 13, x + cell * fraction, 59);
-                    fill(canvas, x, 13, x + cell, 59, 4, energized);
+                    canvas.clipRect(x, 15, x + cell * fraction, 69);
+                    fill(canvas, x, 15, x + cell, 69, 4, energized);
                     canvas.restore();
                 }
             }
 
             // The fixed minus/plus and direction of travel also distinguish actions without colour.
             float left = center() - reach(), right = center() + reach();
-            line(canvas, left - 5, 36, left + 5, 36, RED, 2);
+            line(canvas, left - 5, 42, left + 5, 42, RED, 2);
             if (ringing) {
-                line(canvas, right - 5, 36, right + 5, 36, UiProfiles.accent(getContext()), 2);
-                line(canvas, right, 31, right, 41, UiProfiles.accent(getContext()), 2);
+                line(canvas, right - 5, 42, right + 5, 42, UiProfiles.accent(getContext()), 2);
+                line(canvas, right, 37, right, 47, UiProfiles.accent(getContext()), 2);
             }
 
             if (Math.abs(travel) < .07f) {
                 float x = center() - 34;
-                line(canvas, x + 4, 32, x, 36, 0xffa0b9a8, 1.5f);
-                line(canvas, x, 36, x + 4, 40, 0xffa0b9a8, 1.5f);
+                line(canvas, x + 4, 38, x, 42, 0xffa0b9a8, 1.5f);
+                line(canvas, x, 42, x + 4, 46, 0xffa0b9a8, 1.5f);
                 if (ringing) {
                     x = center() + 34;
-                    line(canvas, x - 4, 32, x, 36, 0xffb5d0bd, 1.5f);
-                    line(canvas, x, 36, x - 4, 40, 0xffb5d0bd, 1.5f);
+                    line(canvas, x - 4, 38, x, 42, 0xffb5d0bd, 1.5f);
+                    line(canvas, x, 42, x - 4, 46, 0xffb5d0bd, 1.5f);
                 }
             }
 
-            fill(canvas, knob - 24, 9, knob + 24, 63, 14, 0xff0c1510);
-            fill(canvas, knob - 22, 11, knob + 22, 61, 12, blend(0xffd0e7d7, direction, amount));
+            fill(canvas, knob - 24, 13, knob + 24, 71, 14, 0xff0c1510);
+            fill(canvas, knob - 22, 15, knob + 22, 69, 12, blend(0xffd0e7d7, direction, amount));
             canvas.save();
-            canvas.translate(knob, 36);
+            canvas.translate(knob, 42);
             canvas.rotate(travel < 0 ? travel * 45f : 0);
             handset.setBounds(-11, -11, 11, 11);
             handset.draw(canvas);

@@ -13,7 +13,7 @@ manifest = (ROOT/"src/main/AndroidManifest.xml").read_text(encoding="utf-8")
 build = (ROOT/"build.gradle").read_text(encoding="utf-8")
 
 checks = {
-    "version_19": "versionCode 19; versionName '0.3.3-rc5'" in build,
+    "version_20": "versionCode 20; versionName '0.3.3-rc6'" in build,
     "suggestions_in_upper_content": "body.addView(smartPanel,panelSize)" in dial
         and "dialPane.addView(idleCard" in dial,
     "compact_route_selection": "buildRouteSelector();" in dial and "showRoutePicker()" in dial,
