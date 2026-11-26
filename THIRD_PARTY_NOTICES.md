@@ -23,6 +23,6 @@ EVDial source code authored for the project is distributed under the **GNU Affer
 - The Android framework, Android SDK, Android Gradle plugin, Gradle, and third-party messaging apps are **not** included as EVDial-authored code.
 
 ### Images and trademarks
-- The app includes historical EVDial themed background art and brand marks as source resources required to reproduce the Android UI.
+- The app includes historical EVDial themed background art as source resources required to reproduce the Android UI.
 - Trademarks, product names, and external services remain attributable to their respective holders; see [TRADEMARKS.md](TRADEMARKS.md).
 - Do not infer affiliation or endorsements from themed artwork or hyperlinks.

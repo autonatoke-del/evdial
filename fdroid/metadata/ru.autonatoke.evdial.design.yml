@@ -1,0 +1,83 @@
+Categories:
+  - Phone & SMS
+License: AGPL-3.0-only
+AuthorName: autonatoke-del
+WebSite: https://autonatoke.ru/evdial/
+SourceCode: https://github.com/autonatoke-del/evdial
+IssueTracker: https://github.com/autonatoke-del/evdial/issues
+Changelog: https://github.com/autonatoke-del/evdial/tree/main/fastlane/metadata/android/en-US/changelogs
+AntiFeatures:
+  NonFreeNet:
+    en-US: Optional links open proprietary web search, maps, messaging and DIAGNOST AI services.
+
+AutoName: EVDial Design
+
+RepoType: git
+Repo: https://github.com/autonatoke-del/evdial.git
+
+Builds:
+  - versionName: 0.3.3-rc7
+    versionCode: 21
+    disable: Candidate only; full source build, scanner and asset-license audit are unverified
+    commit: REPLACE_WITH_TESTED_SOURCE_COMMIT
+    sudo:
+      - apt-get update
+      - apt-get install -y build-essential cmake doxygen meson nasm pkgconf python3-pystache
+        python3-six yasm
+    gradle:
+      - yes
+    srclibs:
+      - linphone-sdk@ce38159e55897c695b7095019b5a1ff612bb181f
+    prebuild:
+      - python3 fdroid/prepare-source.py
+      - git -C $$linphone-sdk$$ submodule update --init --recursive
+      - bash fdroid/build-linphone.sh prepare "$(realpath $$linphone-sdk$$)"
+        "$(realpath -m $$linphone-sdk$$/../evdial-linphone-work)"
+    build:
+      - test -n "$LINPHONE_GRADLE"
+      - ANDROID_NDK_HOME=$$NDK$$ bash fdroid/build-linphone.sh build
+        "$(realpath $$linphone-sdk$$)" "$(realpath -m $$linphone-sdk$$/../evdial-linphone-work)"
+      - printf '\nfdroid=true\nlinphoneAar=%s\n'
+        "$(realpath $$linphone-sdk$$/../evdial-linphone-work/build/linphone-sdk/bin/outputs/aar/linphone-sdk-android-release.aar)"
+        >> gradle.properties
+    ndk: r27
+
+MaintainerNotes: |-
+  DISABLED CANDIDATE. This file is preparation for review, not evidence that
+  EVDial is accepted, built or published by F-Droid. Replace the explicit commit
+  placeholder with the reviewed immutable packaging commit before enabling.
+
+  The SDK srclib already exists in fdroiddata and points to
+  https://gitlab.linphone.org/BC/public/linphone-sdk.git. Tag 5.4.128 resolves to
+  ce38159e55897c695b7095019b5a1ff612bb181f. Recursive source retrieval happens in
+  prebuild; build-linphone.sh itself does not retrieve source or a prebuilt AAR.
+  Firebase cleanup follows the official org.linphone recipe and occurs before
+  the source scan. No scanignore is used to conceal the custom Maven repository.
+
+  Provision JDK17, NDK27, Android platforms31 and35, build-tools35.0.0 and the
+  SDK's required Android build tools before the build. Set LINPHONE_GRADLE to
+  the installed Gradle 8.11.1 executable; app Gradle 8.13 is separate. SDK AGP is
+  8.0.0; app AGP is 8.7.3. LINPHONE_JOBS defaults to 2, allowed range 1..8.
+  Python 3.9 or later is required by the packaging helpers.
+  FDROID_GRADLE_OFFLINE defaults to 1 and requires a populated dependency cache;
+  use 0 only when normal Maven dependency resolution is permitted by the build
+  runner. Cache provisioning and SDK JCenter legacy repository resolution must
+  be validated in a real F-Droid build environment. No Gradle path or cache is
+  assumed to exist on a new runner.
+
+  Full SDK/app builds, source and binary scans, local-AAR transitive dependency
+  verification, APK manifest checks and device SIP/SIM checks remain outstanding.
+  The source-built AAR's SHA256 and exact preparation/tool provenance are written
+  only after a successful build. Remaining EV raster resources need copyright
+  and redistribution-license documentation; the app code licence alone does
+  not settle them. See docs/F-DROID-ARTWORK.md. The charging dataset already
+  includes its Open Charge Map CC BY 4.0 attribution in charging-license.txt.
+  Local-AAR dependencies include commons-compress and AndroidX annotation
+  explicitly. Optional proprietary services are declared as NonFreeNet;
+  reviewers may also consider messaging shortcuts under NonFreeAdd.
+  Privacy details: https://github.com/autonatoke-del/evdial/blob/main/PRIVACY.md
+
+AutoUpdateMode: None
+UpdateCheckMode: None
+CurrentVersion: 0.3.3-rc7
+CurrentVersionCode: 21

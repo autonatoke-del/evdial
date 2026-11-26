@@ -39,19 +39,15 @@ final class ElectricUi {
  }
  static LinearLayout shortcuts(Activity a){
   LinearLayout row=new LinearLayout(a);row.setBaselineAligned(false);
-  String[] names={UiProfiles.RUBINA.equals(UiProfiles.id(a))?"3 Рубина":tr(a,"Браузер","Browser"),tr(a,"Зарядки","Charge"),"AI",tr(a,"Помощь","Help")};
+  String[] names={tr(a,"Браузер","Browser"),tr(a,"Зарядки","Charge"),"AI",tr(a,"Помощь","Help")};
   int[] icons={R.drawable.ev_globe,R.drawable.driver_station_map,R.drawable.driver_ai,R.drawable.driver_help};
-  Runnable[] clicks={()->{if(UiProfiles.RUBINA.equals(UiProfiles.id(a)))EvLinks.open(a,UiProfiles.active(a).website);else a.startActivity(new Intent(a,EvBrowserActivity.class));},()->Charging.open(a),()->EvLinks.diagnost(a),()->DriveTools.assistance(a)};
+  Runnable[] clicks={()->a.startActivity(new Intent(a,EvBrowserActivity.class)),()->Charging.open(a),()->EvLinks.diagnost(a),()->DriveTools.assistance(a)};
   for(int i=0;i<names.length;i++){
    final Runnable click=clicks[i];LinearLayout key=column(a);key.setGravity(Gravity.CENTER);
    key.setPadding(dp(a,4),dp(a,8),dp(a,4),dp(a,8));key.setMinimumHeight(dp(a,56));key.setBackground(buttonSurface(a,16));
    ImageView icon=new ImageView(a);icon.setImageResource(icons[i]);icon.setColorFilter(i%2==0?UiProfiles.secondary(a):UiProfiles.accent(a));key.addView(icon,dp(a,21),dp(a,21));
    TextView name=text(a,names[i],12,WHITE,true);name.setGravity(Gravity.CENTER);name.setPadding(0,dp(a,5),0,0);name.setMaxLines(1);
    key.addView(name,-1,-2);key.setContentDescription(names[i]);key.setOnClickListener(v->click.run());
-   if(i==0&&UiProfiles.RUBINA.equals(UiProfiles.id(a))){
-      key.setOnLongClickListener(v->{a.startActivity(new Intent(a,EvBrowserActivity.class));return true;});
-      key.setTooltipText(tr(a,"Удерживайте для браузера","Hold for browser"));
-   }
    LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,-2,1);p.setMargins(i==0?0:dp(a,3),0,i==3?0:dp(a,3),0);row.addView(key,p);
   }return row;
  }

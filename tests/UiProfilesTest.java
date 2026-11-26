@@ -22,7 +22,7 @@ public final class UiProfilesTest {
  }
  public static void main(String[] args){
   Device phone=new Device();
-  check(UiProfiles.values().length==5,"Five current visual profiles");
+  check(UiProfiles.values().length==4,"Four current visual profiles");
   check(UiProfiles.LIGHT.equals(UiProfiles.find(UiProfiles.LIGHT).id),"Light profile exists");
   check(UiProfiles.PEARL.equals(UiProfiles.find(UiProfiles.PEARL).id),"Pearl profile exists");
   check(UiProfiles.MINIMAL.equals(UiProfiles.find(UiProfiles.MINIMAL).id),"Minimal profile exists");
@@ -34,9 +34,8 @@ public final class UiProfilesTest {
   check(UiProfiles.panel(phone)>>>24==0,"Fully transparent panels");
   UiProfiles.set(phone,UiProfiles.KEYPAD,0);
   check(UiProfiles.keypad(phone)>>>24==0,"Fully transparent dialpad");
-  UiProfiles.select(phone,UiProfiles.RUBINA);
-  check("3 Рубина".equals(UiProfiles.active(phone).label),"Rubina brand");
-  check("https://3rubina.ru/".equals(UiProfiles.active(phone).website),"Rubina site only");
+  UiProfiles.select(phone,UiProfiles.PEARL);
+  check("Жемчуг".equals(UiProfiles.active(phone).label),"Pearl theme label");
   check(UiProfiles.value(phone,UiProfiles.BUTTON)==88,"New profile owns separate default");
   UiProfiles.set(phone,UiProfiles.BUTTON,73);
   UiProfiles.select(phone,UiProfiles.LIGHT);
@@ -44,8 +43,7 @@ public final class UiProfilesTest {
   check(UiProfiles.value(phone,UiProfiles.BUTTON)==88,"Light has independent settings");
   UiProfiles.set(phone,UiProfiles.BUTTON,47);
   UiProfiles.select(phone,UiProfiles.PEARL);
-  check("Жемчуг".equals(UiProfiles.active(phone).label),"Pearl theme label");
-  check(UiProfiles.value(phone,UiProfiles.BUTTON)==88,"Pearl has independent defaults");
+  check(UiProfiles.value(phone,UiProfiles.BUTTON)==73,"Pearl saved settings restored");
   UiProfiles.select(phone,UiProfiles.MINIMAL);
   check("Минимализм".equals(UiProfiles.active(phone).label),"Minimal visual mode");
   check(UiProfiles.value(phone,UiProfiles.BUTTON)==88,"Minimal has independent controls");
@@ -55,15 +53,24 @@ public final class UiProfilesTest {
   phone.data.putString("ui_profile",UiProfiles.AKOP);
   check(UiProfiles.EV.equals(UiProfiles.id(phone)),"Persisted legacy Akop value migrates to EV");
   check(UiProfiles.EV.equals(phone.data.getString("ui_profile","")),"Legacy value normalized in preferences");
-  UiProfiles.select(phone,UiProfiles.RUBINA);
-  check(UiProfiles.value(phone,UiProfiles.BUTTON)==73,"Rubina saved settings restored");
+  phone.data.putInt("skin_rubina_button_opacity",73).putString("ui_profile","rubina");
+  check(UiProfiles.EV.equals(UiProfiles.id(phone)),"Removed persisted theme migrates to EV");
+  check(UiProfiles.EV.equals(phone.data.getString("ui_profile","")),"Removed theme migration is persisted");
+  check(UiProfiles.value(phone,UiProfiles.BUTTON)==0,"Migration preserves the existing EV settings");
+  check(UiProfiles.active(phone).wallpaper==R.drawable.wp_neon,"Migration uses the EV profile artwork");
+  UiProfiles.select(phone,"rubina");
+  check(UiProfiles.EV.equals(UiProfiles.id(phone)),"A removed theme cannot be reselected");
+  phone.data.putString("ui_profile","unknown-profile");
+  check(UiProfiles.EV.equals(UiProfiles.id(phone)),"Unknown profile falls back safely");
+  check(UiProfiles.EV.equals(phone.data.getString("ui_profile","")),"Unknown profile is normalized");
+  UiProfiles.select(phone,UiProfiles.PEARL);
   String before=UiProfiles.signature(phone);
   UiProfiles.set(phone,UiProfiles.NAV,0);
   check(!before.equals(UiProfiles.signature(phone)),"UI signature detects changes");
   UiProfiles.reset(phone);
   check(UiProfiles.value(phone,UiProfiles.BUTTON)==88,"Reset only current profile");
   UiProfiles.select(phone,UiProfiles.LIGHT);
-  check(UiProfiles.value(phone,UiProfiles.BUTTON)==47,"Light settings survive across five themes");
+  check(UiProfiles.value(phone,UiProfiles.BUTTON)==47,"Light settings survive across four themes");
   UiProfiles.select(phone,UiProfiles.EV);
   check(UiProfiles.value(phone,UiProfiles.BUTTON)==0,"Original profile retained after others reset");
   check(UiProfiles.opacity(0xffabcdef,0)==0x00abcdef,"Zero opacity exactly zero");

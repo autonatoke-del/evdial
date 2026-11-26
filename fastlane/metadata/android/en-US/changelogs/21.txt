@@ -1,0 +1,4 @@
+0.3.3-rc7:
+• Removed the 3 Rubina theme, logo and links.
+• Added a separate F-Droid build mode with repository-managed updates and the website APK updater disabled.
+• Added store descriptions and privacy documentation for submission review. Preparation does not mean the app is already in the official F-Droid catalog.

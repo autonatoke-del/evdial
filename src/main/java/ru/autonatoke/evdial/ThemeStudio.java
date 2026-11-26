@@ -43,9 +43,6 @@ public class ThemeStudio extends Activity {
   if(profileRow.getChildCount()>0)add(root,profileRow,12);
   TextView themeDescription=ElectricUi.text(this,UiProfiles.active(this).description,14,ElectricUi.MUTED,false);
   add(root,themeDescription,10);
-  if(UiProfiles.RUBINA.equals(UiProfiles.id(this))){
-    add(root,ElectricUi.button(this,"3rubina.ru  ↗",()->EvLinks.open(this,UiProfiles.active(this).website)),8);
-  }
   LinearLayout advanced=ElectricUi.column(this);
   TextView advancedToggle=ElectricUi.button(this,tr("⚙  Тонкая настройка  ▾","⚙  Fine tuning  ▾"),()->{
     advanced.setVisibility(advanced.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE);

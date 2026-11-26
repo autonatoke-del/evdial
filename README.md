@@ -25,10 +25,14 @@ python3 tests/run_jvm_regressions.py
 
 For the latest candidate, also run `python3 tests/CompactUiSourceChecks.py`. See [BUILDING.md](BUILDING.md) for configuration, permissions and verification.
 
+## F-Droid preparation
+
+An optional repository build is being prepared for F-Droid. It requires a locally source-built Linphone SDK and delegates app updates to the repository client. This is **not yet an official F-Droid listing**. The candidate build recipe is disabled until the SDK build and remaining artwork licenses are verified. See [F-Droid preparation](docs/F-DROID.md) for the exact status and commands. English and Russian listing text is maintained under `fastlane/metadata/android/`.
+
 **Installation warning:** self-built/debug APKs do not have the official production signing key. Do not uninstall an installed signed EVDial to install a debug APK; Android rejects an in-place update if certificates differ. No signing material, access tokens, user contacts, CRM, backend, call records or service credentials are included in this repository.
 
 ## Privacy and scope
 
-Contacts, call logs and optional call recordings stay under Android access controls unless the user explicitly sends something or chooses a provider. SIP contacts the server the user configures; the updater makes HTTPS calls to the website preview feed. The optional DIAGNOST AI link opens an **external service with separate terms**. This repository contains the *client only*, not the private НЕБЕНЗИН platform, CRM, telephony backend, server code or its deployments.
+Contacts, call logs and links to user-selected existing recordings stay under Android access controls unless the user explicitly sends something or chooses a provider. SIP contacts the server the user configures; the website build's manual updater makes HTTPS calls to the preview feed. The optional DIAGNOST AI link opens an **external service with separate terms**. See [PRIVACY.md](PRIVACY.md) for permissions, local storage and external connections. This repository contains the *client only*, not the private НЕБЕНЗИН platform, CRM, telephony backend, server code or its deployments.
 
 This is an evolving open-source preview. SIM default-dialer role, manufacturer restrictions, SIP, outgoing/incoming calls, vCard sharing and store-policy compliance require device-specific verification before relying on a build.

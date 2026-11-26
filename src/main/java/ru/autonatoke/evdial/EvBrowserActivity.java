@@ -13,10 +13,9 @@ public class EvBrowserActivity extends Activity {
   ScrollView scroll=new ScrollView(this);LinearLayout root=ElectricUi.column(this);root.setId(android.R.id.custom);
   root.setPadding(dp(18),dp(12),dp(18),dp(24));scroll.addView(root);setContentView(scroll);Appearance.applyBackground(this,root);
   root.addView(ElectricUi.button(this,ElectricUi.tr(this,"‹  Вернуться в EVDial","‹  Back to EVDial"),this::finish),-1,-2);
-  TextView title=ElectricUi.text(this,UiProfiles.RUBINA.equals(UiProfiles.id(this))?"Сайт 3 Рубина":ElectricUi.tr(this,"Интернет для EV","EV browser"),28,ElectricUi.WHITE,true);title.setPadding(0,dp(24),0,dp(12));root.addView(title);
+  TextView title=ElectricUi.text(this,ElectricUi.tr(this,"Интернет для EV","EV browser"),28,ElectricUi.WHITE,true);title.setPadding(0,dp(24),0,dp(12));root.addView(title);
   EditText input=new EditText(this);input.setSingleLine();input.setTextColor(ElectricUi.WHITE);input.setHintTextColor(ElectricUi.MUTED);input.setTextSize(17);
   input.setPadding(dp(14),dp(15),dp(14),dp(15));input.setBackground(ElectricUi.surface(this,18,false));input.setHint(ElectricUi.tr(this,"Сайт или поисковый запрос","Website or search query"));
-  if(UiProfiles.RUBINA.equals(UiProfiles.id(this))){add(root,ElectricUi.button(this,"Открыть 3rubina.ru  ↗",()->EvLinks.open(this,UiProfiles.active(this).website)));}
   input.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_URI);input.setImeOptions(EditorInfo.IME_ACTION_GO);root.addView(input,-1,-2);
   Runnable go=()->{String q=input.getText().toString().trim();if(q.isEmpty())return;
    String url=q;

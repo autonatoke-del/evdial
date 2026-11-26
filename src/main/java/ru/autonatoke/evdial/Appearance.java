@@ -110,9 +110,7 @@ public final class Appearance {
             target.setBackground(background);
         }
         background.update(resource == 0 ? R.drawable.flux : resource, normalizeMode(mode),
-                maximumEdge, preloadWhenPlain, UiProfiles.active(activity).base,
-                UiProfiles.RUBINA.equals(UiProfiles.id(activity))?0x2cd33250:
-                    0x00000000);
+                maximumEdge, preloadWhenPlain, UiProfiles.active(activity).base);
     }
 
     private static int normalizeMode(int mode) {
@@ -131,7 +129,6 @@ public final class Appearance {
         private Bitmap texture;
         private int mode;
         private int skinBase=BASE_COLOR;
-        private int skinOverlay=Color.TRANSPARENT;
         private int resource;
         private int maximumEdge;
         private int generation;
@@ -143,9 +140,8 @@ public final class Appearance {
             this.resources = resources;
         }
 
-        void update(int selectedResource, int selectedMode, int selectedEdge, boolean preload, int newSkinBase, int newSkinOverlay) {
+        void update(int selectedResource, int selectedMode, int selectedEdge, boolean preload, int newSkinBase) {
             skinBase = newSkinBase;
-            skinOverlay = newSkinOverlay;
             if (resource != selectedResource || maximumEdge != selectedEdge) {
                 cancelLoad();
                 texture = null;
@@ -185,10 +181,6 @@ public final class Appearance {
                 // The art itself has a dark centre; vivid mode leaves the car clearly visible.
                 surfacePaint.setColor(mode == 2 ? 0x28061018 : 0x88061018);
                 canvas.drawRect(bounds, surfacePaint);
-                if (skinOverlay != Color.TRANSPARENT) {
-                    surfacePaint.setColor(skinOverlay);
-                    canvas.drawRect(bounds, surfacePaint);
-                }
             }
             canvas.restoreToCount(saved);
         }

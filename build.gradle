@@ -1,13 +1,31 @@
 plugins { id 'com.android.application' version '8.7.3' }
+def fdroidBuild = providers.gradleProperty('fdroid').orElse('false').get() == 'true'
+def sourceBuiltLinphone = null
+if (fdroidBuild) {
+ def aarPath = providers.gradleProperty('linphoneAar').orNull
+ if (!aarPath) throw new GradleException('F-Droid builds require -PlinphoneAar=/absolute/path/to/source-built.aar')
+ sourceBuiltLinphone = new File(aarPath)
+ if (!sourceBuiltLinphone.isAbsolute() || !sourceBuiltLinphone.isFile() || !sourceBuiltLinphone.name.endsWith('.aar')) {
+  throw new GradleException('linphoneAar must name an existing absolute source-built .aar file; Maven fallback is disabled')
+ }
+}
 android {
  namespace 'ru.autonatoke.evdial'
+ buildFeatures { buildConfig = true }
  compileSdk 35
  packaging { jniLibs { useLegacyPackaging = true } }
  buildToolsVersion '35.0.0'
  defaultConfig {
-  applicationId 'ru.autonatoke.evdial.design'; minSdk 26; targetSdk 33; versionCode 20; versionName '0.3.3-rc6'
+  applicationId 'ru.autonatoke.evdial.design'; minSdk 26; targetSdk 33; versionCode 21; versionName '0.3.3-rc7'
+  buildConfigField 'boolean', 'FDROID_BUILD', fdroidBuild.toString()
   manifestPlaceholders = [phoneAppLabel: 'EVDial Design']
   ndk { abiFilters 'arm64-v8a','armeabi-v7a','x86_64' }
+ }
+ if (fdroidBuild) {
+  sourceSets {
+   debug.manifest.srcFile 'src/fdroid/AndroidManifest.xml'
+   release.manifest.srcFile 'src/fdroid/AndroidManifest.xml'
+  }
  }
  testOptions {
   unitTests.includeAndroidResources = true
@@ -29,7 +47,14 @@ android {
  }
 }
 dependencies {
- implementation 'org.linphone.minimal:linphone-sdk-android:5.4.128'
+ if (fdroidBuild) {
+  implementation files(sourceBuiltLinphone)
+  // Local AARs do not carry the SDK's Maven POM transitive dependencies.
+  implementation 'org.apache.commons:commons-compress:1.16.1'
+  implementation 'androidx.annotation:annotation:1.1.0'
+ } else {
+  implementation 'org.linphone.minimal:linphone-sdk-android:5.4.128'
+ }
  implementation 'androidx.media:media:1.7.0'
  implementation 'androidx.browser:browser:1.8.0'
  implementation 'com.google.protobuf:protobuf-javalite:3.25.5'

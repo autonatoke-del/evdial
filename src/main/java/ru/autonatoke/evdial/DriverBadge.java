@@ -12,7 +12,7 @@ import android.widget.TextView;
 public final class DriverBadge {
     static void add(Activity activity, LinearLayout header) {
         TextView brand = new TextView(activity);
-        String title=UiProfiles.RUBINA.equals(UiProfiles.id(activity))?"3 Рубина":"EVDial";
+        String title="EVDial";
         android.text.SpannableString logo=new android.text.SpannableString(title);
         logo.setSpan(new android.text.style.ForegroundColorSpan(UiProfiles.accent(activity)),0,Math.min(UiProfiles.EV.equals(UiProfiles.id(activity))?2: title.length(),title.length()),33);
         brand.setText(logo);
@@ -27,15 +27,6 @@ public final class DriverBadge {
                 Station.dp(activity, 1), TypedValue.COMPLEX_UNIT_PX);
         brand.setPadding(0, 0, Station.dp(activity, 5), 0);
         int size = Station.dp(activity, 48);
-        if(UiProfiles.RUBINA.equals(UiProfiles.id(activity))){
-            android.widget.ImageView mark = new android.widget.ImageView(activity);
-            mark.setImageResource(R.drawable.trirubina_mark);
-            mark.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);
-            mark.setImportantForAccessibility(android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-            LinearLayout.LayoutParams imageSpace = new LinearLayout.LayoutParams(Station.dp(activity,49),Station.dp(activity,46));
-            imageSpace.rightMargin=Station.dp(activity,5);
-            header.addView(mark,imageSpace);
-        }
         header.addView(brand, new LinearLayout.LayoutParams(0, size, 1));
         
     }
