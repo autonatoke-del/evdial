@@ -70,7 +70,7 @@ Do not sign an F-Droid candidate with the website's private key as a substitute 
 - Listing icon rendered from the existing Android vector by `tools/render_listing_icon.py`.
 - [Remaining artwork inventory](F-DROID-ARTWORK.md); original code's AGPL license does not document those raster assets' provenance.
 - The offline Open Charge Map subset includes source revision, modifications and CC BY 4.0 attribution in `src/main/assets/charging-license.txt`.
-- Candidate metadata is disabled and uses a clearly marked commit placeholder until a tested immutable source revision is selected. Automatic update checks remain disabled during packaging work.
+- Candidate metadata is disabled and pins immutable packaging revision `a11262bb457db0c35d580789aaf5ee3ab312122c`. Automatic update checks remain disabled during packaging work.
 
 Before submitting an enabled recipe, run `fdroid lint`, the source scanner, the complete SDK/app build and APK permission/binary checks. Confirm the optional proprietary links' AntiFeatures with reviewers. Test SIM/SIP behavior on devices before relying on a new SDK build; do not represent source or UI tests as a physical-call test. Do not mark an unchecked requirement as passed.
 

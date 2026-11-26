@@ -8,7 +8,8 @@ This packaging request is made on behalf of the upstream project owner, who requ
 
 - Source: https://github.com/autonatoke-del/evdial
 - Packaging change: https://github.com/autonatoke-del/evdial/pull/6
-- Candidate application revision: `4fdf0f9a303b9a153cf1253facc1c0dcb86de7f9`
+- Tested application revision: `4fdf0f9a303b9a153cf1253facc1c0dcb86de7f9`
+- Pinned packaging revision: `a11262bb457db0c35d580789aaf5ee3ab312122c`
 - Build and remaining work: https://github.com/autonatoke-del/evdial/blob/packaging/fdroid-20261127/docs/F-DROID.md
 - Privacy: https://github.com/autonatoke-del/evdial/blob/packaging/fdroid-20261127/PRIVACY.md
 - Candidate metadata: https://github.com/autonatoke-del/evdial/blob/packaging/fdroid-20261127/fdroid/metadata/ru.autonatoke.evdial.design.yml

@@ -19,7 +19,7 @@ Builds:
   - versionName: 0.3.3-rc7
     versionCode: 21
     disable: Candidate only; full source build, scanner and asset-license audit are unverified
-    commit: REPLACE_WITH_TESTED_SOURCE_COMMIT
+    commit: a11262bb457db0c35d580789aaf5ee3ab312122c
     sudo:
       - echo "deb https://deb.debian.org/debian bookworm main"
         > /etc/apt/sources.list.d/bookworm.list
@@ -52,8 +52,9 @@ Builds:
 
 MaintainerNotes: |-
   DISABLED CANDIDATE. This file is preparation for review, not evidence that
-  EVDial is accepted, built or published by F-Droid. Replace the explicit commit
-  placeholder with the reviewed immutable packaging commit before enabling.
+  EVDial is accepted, built or published by F-Droid. The pinned packaging source
+  contains the tested RC7 application and tool-selection fixes; the full SDK
+  source build and artwork licence audit still gate enabling this recipe.
 
   The SDK srclib already exists in fdroiddata and points to
   https://gitlab.linphone.org/BC/public/linphone-sdk.git. Tag 5.4.128 resolves to
