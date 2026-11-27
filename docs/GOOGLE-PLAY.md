@@ -1,6 +1,6 @@
 # Google Play preparation
 
-Status as of 27 November 2026: **candidate source and submission materials; not uploaded to Play Console and not approved**. A successful local build is not store approval. See [the submission worksheet](../play/SUBMISSION.md) for unresolved account and review fields.
+Status as of 27 November 2026: **candidate built and checked; not uploaded to Play Console and not approved**. A successful local build is not store approval. See [the validation record](GOOGLE-PLAY-VALIDATION.md) for exact artifacts and results, and [the submission worksheet](../play/SUBMISSION.md) for unresolved account and review fields.
 
 ## Candidate build
 
@@ -19,7 +19,7 @@ The Play and F-Droid properties are mutually exclusive. This mode uses the decla
 With the JDK/Gradle toolchain in [BUILDING.md](../BUILDING.md), Android API 36 and build-tools 35.0.0 installed:
 
 ```bash
-gradle -PgooglePlay=true assembleDebug bundleRelease lintDebug
+gradle -PgooglePlay=true assembleRelease bundleRelease lintRelease
 gradle -PgooglePlay=true testDebugUnitTest
 python3 tests/run_jvm_regressions.py
 ```
@@ -38,9 +38,9 @@ Target-36 device checks must include call audio/routing, role grant/revocation, 
 
 ## Store materials and signing
 
-English and Russian copy is in `play/metadata/`. The copied 512 px icon comes from the existing repository listing asset. Feature graphics and screenshots are still required; use the final UI, synthetic contacts and cleared artwork. Do not upload users' phone photographs or invent screenshots. The [asset specifications](https://support.google.com/googleplay/android-developer/answer/9866151?hl=en) apply.
+English and Russian copy is in `play/metadata/`. The 512 px icon comes from the existing repository listing asset. Both locales include an opaque 1024×500 feature graphic, generated from the original vector icon by `tools/render_play_graphic.py`. Actual UI screenshots are still required; use the final UI, synthetic contacts and cleared artwork. Do not upload users' phone photographs or invent screenshots. The [asset specifications](https://support.google.com/googleplay/android-developer/answer/9866151?hl=en) apply.
 
-The policy source is [PRIVACY.md](../PRIVACY.md). Intended public URL: <https://autonatoke.ru/evdial/privacy/>; deployment and in-app access must be verified before submission. The store's support email is separate and remains unconfirmed.
+The policy sources are [PRIVACY.md](../PRIVACY.md) and [PRIVACY.ru.md](../PRIVACY.ru.md). The bilingual page is published at <https://autonatoke.ru/evdial/privacy/>. On 27 November 2026, the public response returned HTTP 200 with the expected HTML hash, and both language sections were visually inspected in the browser. The candidate source adds the same URL to Settings; exercise that action on a device before submission. The store's support email is separate and remains unconfirmed.
 
 To preserve update compatibility with existing website installations, enroll the existing production app-signing key in Play App Signing through Google's secure import flow, then use a separate upload key. Do not let an unrelated generated signing key replace the existing identity by accident. Keep private keys outside Git and chat. See [Android app signing](https://developer.android.com/studio/publish/app-signing).
 

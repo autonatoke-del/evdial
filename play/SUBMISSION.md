@@ -9,9 +9,10 @@ Prepared 27 November 2026. **Not uploaded. Not approved.** This file separates r
 | Title | EVDial |
 | Package | `ru.autonatoke.evdial.design` |
 | Candidate | Version code 22, `0.3.3-rc8-play`, `-PgooglePlay=true` |
+| Build evidence | [Exact unsigned artifacts and validation results](../docs/GOOGLE-PLAY-VALIDATION.md); signing/account enrollment and device tests remain outstanding |
 | Listing text | [English](metadata/en-US/full_description.txt), [Russian](metadata/ru-RU/full_description.txt), with separate titles and short descriptions |
 | Category | Communication is proposed from the app's calling purpose; confirm in Console |
-| Privacy URL | `https://autonatoke.ru/evdial/privacy/` — prepared destination, deployment/access verification pending |
+| Privacy URL | `https://autonatoke.ru/evdial/privacy/` — published in English and Russian; public HTTP response, exact content hash and browser rendering verified 27 November 2026 |
 | Website/source | `https://autonatoke.ru/evdial/` / `https://github.com/autonatoke-del/evdial` |
 | Support email | Owner must provide an authorized public address; none invented |
 | Developer/account identity | Verify from the actual Console; the public project handle is `autonatoke-del` |
@@ -77,7 +78,7 @@ The application contains communication functions and opens web services. Complet
 
 - Verify the developer account, public support contact, production access and any account-specific testing requirement. [Account information](https://support.google.com/googleplay/android-developer/answer/13628312?hl=en).
 - Confirm redistribution rights for all remaining visual assets; prepare real screenshots without personal data.
-- Verify the public privacy page and in-app link, and reconcile it with the final Data Safety answers.
+- Exercise the candidate's Settings → Privacy policy action on a device, and reconcile the published policy with the final Data Safety answers.
 - Complete controlled SIP/SIM device tests, native 16 KB validation and permission/service demonstrations; record the actual results.
 - Enroll the existing app-signing identity securely for website-update continuity and prepare a separate upload key. [Signing guidance](https://developer.android.com/studio/publish/app-signing).
 - Identify the exact signed AAB by commit, version, hash and certificate; submit that artifact only after these gates are satisfied. Record upload, review and publication as separate outcomes.
