@@ -5,7 +5,8 @@
 - Source code: https://github.com/autonatoke-del/evdial
 - Website / preview APK: https://autonatoke.ru/evdial/
 - Android package used by the existing preview: `ru.autonatoke.evdial.design`.
-- **License for EVDial original code: GNU AGPLv3** (see [LICENSE](LICENSE)).
+- **License for EVDial original code: AGPL-3.0-only** (see [LICENSE](LICENSE)).
+- The 15 project-generated EV raster assets are distributed under the same AGPL-3.0-only license to the extent copyright applies. The owner's confirmation and exact file hashes are recorded in the [artwork inventory](docs/F-DROID-ARTWORK.md).
 - The SIP library `org.linphone.minimal:linphone-sdk-android:5.4.128` is supplied by Belledonne Communications under AGPLv3 or a separate commercial license. It is **not** developed or endorsed by EVDial.
 - The offline charging dataset has separate attribution and license: [Open Charge Map / CC BY 4.0](src/main/assets/charging-license.txt).
 - Original project brand names and logos remain trademarks of their respective holders. The code license does not grant trademark or endorsement rights. See [TRADEMARKS.md](TRADEMARKS.md).
@@ -27,7 +28,18 @@ For the latest candidate, also run `python3 tests/CompactUiSourceChecks.py`. See
 
 ## F-Droid preparation
 
-An optional repository build is being prepared for F-Droid. It requires a locally source-built Linphone SDK and delegates app updates to the repository client. This is **not yet an official F-Droid listing**. The candidate build recipe is disabled until the SDK build and remaining artwork licenses are verified. See [F-Droid preparation](docs/F-DROID.md) for the exact status and commands. English and Russian listing text is maintained under `fastlane/metadata/android/`.
+An optional repository build is prepared for F-Droid. The Linphone SDK and app
+have been built from source, 58 tests passed, and the application source and
+binary scans passed. The project owner confirmed the bundled EV raster artwork
+was generated for EVDial; its provenance and license scope are now recorded.
+The build delegates app updates to the repository client.
+
+This is **not yet an official F-Droid listing**. The candidate recipe remains
+disabled pending packaging review and verification for the official F-Droid
+build. The prepared evidence can accompany a packaging-review request; physical
+SIM/SIP checks are follow-up quality work. See [F-Droid preparation](docs/F-DROID.md)
+for the exact status and commands. English and Russian listing text is maintained
+under `fastlane/metadata/android/`.
 
 **Installation warning:** self-built/debug APKs do not have the official production signing key. Do not uninstall an installed signed EVDial to install a debug APK; Android rejects an in-place update if certificates differ. No signing material, access tokens, user contacts, CRM, backend, call records or service credentials are included in this repository.
 

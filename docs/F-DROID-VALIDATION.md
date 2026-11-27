@@ -36,14 +36,19 @@ The signed website RC7 was published and independently downloaded for verificati
 the official configuration assets, including categories and AntiFeatures, from
 fdroiddata revision `fe9315158a207f6d56dfd4eeb15e24a193540e91`.
 
-It passed again after the status-only `disable` and `MaintainerNotes` wording
-update. The exact updated metadata SHA-256 is
+It passed again for the status-only `disable` and `MaintainerNotes` revision
+recorded before the owner's artwork confirmation. That metadata SHA-256 was
 `9cc998ca3a6ec366c53e697fdfd8ee9b69b9b3c7875c8d19d92a1309c8e553c1`.
 That lint ran in a separate directory with a verified copy of all 241 official
 configuration assets; the previous metadata input was left unchanged. The source
 pin, recipe commands and build settings are unchanged, and the build remains
 disabled. Metadata lint does not establish successful execution of the native
 build commands. Plain YAML parsing is not substituted for this check.
+
+The later artwork-provenance update changes only `disable` and `MaintainerNotes`
+again; the source pins, recipe commands and build settings remain identical.
+The recorded lint pass above refers to its exact historical hash, not a new lint
+run for this later wording.
 
 ## Completed SDK source build
 
@@ -127,12 +132,25 @@ F-Droid boundary manifest.
 | Generated release manifest | `2cfd53d38e000f24ffbbcdbbaae7f850cf7fa2cc02be35208e92033695bf9b89` |
 | Release runtime dependency report | `a104dd5ef5ea35b3a3675eb08ec39f9a779cf1148390e9ee5e46e1ceaccf39fc` |
 
-## Remaining gates
+## Artwork provenance update
 
-The candidate recipe remains disabled. Complete execution in the official
-F-Droid runner, including its tool and dependency provisioning, remains
-unverified. The [artwork inventory](F-DROID-ARTWORK.md) remains an open
-redistribution-license gate. Optional-service AntiFeatures and the final recipe
-still require maintainer review.
+On 27 November 2026 (Moscow time), the project owner confirmed that the 15 bundled
+EV raster assets were generated for EVDial. The [artwork inventory](F-DROID-ARTWORK.md)
+now records that statement and the existing project's AGPL-3.0-only distribution
+scope for those assets, to the extent copyright applies. Their exact bytes and
+hashes are unchanged, including in the pinned application source used by the
+builds above. No generator, model, prompt or creation date is inferred, and no
+independent legal audit is claimed.
 
-No real call was placed during these checks. Source, JVM and UI tests do not establish physical Xiaomi/Samsung behavior or end-to-end SIP interoperability. No acceptance or publication by F-Droid is claimed.
+## Packaging review and remaining validation
+
+The candidate recipe remains disabled pending packaging review and verification
+for the official F-Droid build. Complete execution in that environment, including
+tool and dependency provisioning, remains unverified. Optional-service
+AntiFeatures and the final recipe still require maintainer review. These steps
+do not prevent opening a packaging-review request with the completed evidence.
+
+No real call was placed during these checks. Source, JVM and UI tests do not
+establish physical Xiaomi/Samsung behavior or end-to-end SIP interoperability.
+Those device checks remain follow-up quality work, not a prerequisite for filing
+the packaging request. No acceptance or publication by F-Droid is claimed.
