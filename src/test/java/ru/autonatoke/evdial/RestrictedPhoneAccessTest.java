@@ -18,6 +18,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.Collections;
@@ -35,6 +36,7 @@ import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.LooperMode;
+import org.robolectric.shadows.ShadowActivity;
 import org.robolectric.shadows.ShadowContentResolver;
 import org.robolectric.shadows.ShadowSmsManager;
 import org.robolectric.shadows.ShadowSubscriptionManager;
@@ -54,7 +56,14 @@ public final class RestrictedPhoneAccessTest {
     private CallsProvider provider;
 
     public static class NoCallsPhone extends Phone {
-        @Override synchronized Core sipCore() { throw new AssertionError("Role tests must not initialize SIP"); }
+        private final Core historyOnly = (Core) Proxy.newProxyInstance(Core.class.getClassLoader(),
+                new Class<?>[]{Core.class}, (proxy, method, args) -> {
+                    // ContactsScreen merges saved SIP history with the current core's logs.
+                    // This is a Java-only reader; any native/call operation still fails the test.
+                    if (method.getName().equals("getCallLogs")) return new org.linphone.core.CallLog[0];
+                    throw new AssertionError("Unexpected SIP operation in role test: " + method.getName());
+                });
+        @Override synchronized Core sipCore() { return historyOnly; }
         @Override void dial(String number) { throw new AssertionError("Role tests must not place a call"); }
         @Override void updateService() { throw new AssertionError("Role tests must not start call services"); }
     }
@@ -130,10 +139,23 @@ public final class RestrictedPhoneAccessTest {
         ActivityController<Activity> host = host();
         try {
             QuickSms editor = editor(host.get());
+            assertTrue(PhoneRole.held(host.get()));
+            assertEquals(PackageManager.PERMISSION_DENIED,
+                    host.get().checkSelfPermission(Manifest.permission.SEND_SMS));
             submit(editor);
+            // Platform Fragment requests bypass Activity.requestPermissions(), so
+            // ShadowActivity.getLastRequestedPermission() does not record this path.
+            ShadowActivity.IntentForResult request = shadowOf(host.get()).getNextStartedActivityForResult();
+            assertNotNull("The fragment opens Android's permission request", request);
+            assertEquals(73, request.requestCode);
+            assertEquals("android.content.pm.action.REQUEST_PERMISSIONS", request.intent.getAction());
             assertArrayEquals(new String[]{Manifest.permission.SEND_SMS},
-                    shadowOf(host.get()).getLastRequestedPermission().requestedPermissions);
+                    request.intent.getStringArrayExtra("android.content.pm.extra.REQUEST_PERMISSIONS_NAMES"));
+            Intent started = shadowOf(host.get()).getNextStartedActivity();
+            assertNotNull(started);
+            assertEquals(request.intent.getAction(), started.getAction());
             assertNull(shadowOf(host.get()).getNextStartedActivity());
+            assertNoSms();
             role(false);
             shadowOf(app).grantPermissions(Manifest.permission.SEND_SMS);
             editor.onRequestPermissionsResult(73, new String[]{Manifest.permission.SEND_SMS},
@@ -271,7 +293,8 @@ public final class RestrictedPhoneAccessTest {
         Intent intent = shadowOf(host).getNextStartedActivity();
         assertNotNull(intent);
         assertEquals(Intent.ACTION_SENDTO, intent.getAction());
-        assertEquals("smsto:" + RECIPIENT, intent.getDataString());
+        assertEquals("smsto", intent.getData().getScheme());
+        assertEquals(RECIPIENT, intent.getData().getSchemeSpecificPart());
         assertEquals(DRAFT, intent.getStringExtra("sms_body"));
     }
 
