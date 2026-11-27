@@ -16,7 +16,7 @@ Prepared 27 November 2026. **Not uploaded. Not approved.** This file separates r
 | Support email | Owner must provide an authorized public address; none invented |
 | Developer/account identity | Verify from the actual Console; the public project handle is `autonatoke-del` |
 | Price, countries, age audience | Unconfirmed; do not infer from the source or business profile |
-| Graphics | 512×512 icon prepared; 1024×500 feature graphic and actual UI screenshots pending |
+| Graphics | 512×512 icon and EN/RU 1024×500 feature graphics prepared; actual UI screenshots pending |
 
 Store limits and contact requirements: [Create and set up your app](https://support.google.com/googleplay/android-developer/answer/9859152?hl=en). Graphics: [preview asset specifications](https://support.google.com/googleplay/android-developer/answer/9866151?hl=en). Use only cleared artwork, and synthetic contact/call data in screenshots.
 
