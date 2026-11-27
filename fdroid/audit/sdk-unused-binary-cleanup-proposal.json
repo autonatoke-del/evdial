@@ -1,0 +1,418 @@
+{
+  "status": "proposed-not-applied",
+  "sdkCommit": "ce38159e55897c695b7095019b5a1ff612bb181f",
+  "reportSha256": "fbd4afebddda3416c3c188679434e920dca9c696d04d5c472a8450ebf4c8ede4",
+  "removeDirectories": [
+    {
+      "path": "external/srtp/fuzzer/corpus",
+      "fileCount": 2250,
+      "bytes": 894723,
+      "manifestSha256": "3ebdced5bf0dcdf99829e1ec2241022018ea352985d1e5757a261f14de42680d",
+      "hashMethod": "SHA256 of UTF-8 JSON array sorted by relative path, each record path/sha256/bytes, keys sorted and compact separators; no symlinks allowed",
+      "reason": "SRTP fuzzing corpus; tests/fuzzers are not part of the minimal Android library target."
+    }
+  ],
+  "removeFiles": [
+    {
+      "path": "cmake/NuGet/Windows/nuget.exe",
+      "bytes": 6661528,
+      "sha256": "ae3bb02517b52a744833a4777e99d647cd80b29a62fd360e9aabaa34f09af59c",
+      "finding": "binary"
+    },
+    {
+      "path": "external/codec2/win32/c2dec.exe",
+      "bytes": 27470,
+      "sha256": "ba094489dc320e1cf404f899f879d3688783d76712472661898709b4b3fb90c4",
+      "finding": "binary"
+    },
+    {
+      "path": "external/codec2/win32/c2demo.exe",
+      "bytes": 24205,
+      "sha256": "bea6022598b47f51ad9a2e6fa6fe8cfe11d5f051aa82673a32c71787c6fc34f5",
+      "finding": "binary"
+    },
+    {
+      "path": "external/codec2/win32/c2enc.exe",
+      "bytes": 24723,
+      "sha256": "9af75e57091e97525f929250a56105d4a3303e4bb744c0ff6ff0d19ff350ab82",
+      "finding": "binary"
+    },
+    {
+      "path": "external/libjpeg-turbo/java/doc/member-search-index.zip",
+      "bytes": 1951,
+      "sha256": "21cbbb6771b59b6ae8bd9827d86c98c07b0cbc8a576e3e6038346b1525f3be47",
+      "finding": "\u0410\u0440\u0445\u0438\u0432 ZIP"
+    },
+    {
+      "path": "external/libjpeg-turbo/java/doc/package-search-index.zip",
+      "bytes": 237,
+      "sha256": "352c7018d3c8a26e4333574341e3666eb2ef98183150e784f5059cf4394cb092",
+      "finding": "\u0410\u0440\u0445\u0438\u0432 ZIP"
+    },
+    {
+      "path": "external/libjpeg-turbo/java/doc/type-search-index.zip",
+      "bytes": 311,
+      "sha256": "f1a87ef55b689453bc3268eecdde7afc56a1ec2304017306592a93242ede2ae0",
+      "finding": "\u0410\u0440\u0445\u0438\u0432 ZIP"
+    },
+    {
+      "path": "external/mbedtls/framework/data_files/hash_file_1",
+      "bytes": 5120,
+      "sha256": "975d0c620d3936886f8a3665e585a3e84aa0501f4225bf53029710242823e391",
+      "finding": "binary"
+    },
+    {
+      "path": "external/mbedtls/framework/data_files/hash_file_2",
+      "bytes": 153,
+      "sha256": "11fcbf1baa36ca45745f10cc5467aee86f066f80ba2c46806d876bf783022ad2",
+      "finding": "binary"
+    },
+    {
+      "path": "external/mbedtls/framework/data_files/hash_file_3",
+      "bytes": 13,
+      "sha256": "9ae4b369f9f4f03b86505b46a5469542e00aaff7cf7417a71af6d6d0aba3b70c",
+      "finding": "binary"
+    },
+    {
+      "path": "external/mbedtls/framework/data_files/lms_hash-sigs_sha256_m32_h5_lmots_sha256_n32_w8_aux",
+      "bytes": 10916,
+      "sha256": "247f0b11730e52ad45fe1cf2cba2ba2b344d2e38388f8bacde995a0eed41cb94",
+      "finding": "binary"
+    },
+    {
+      "path": "external/mbedtls/framework/data_files/lms_hash-sigs_sha256_m32_h5_lmots_sha256_n32_w8_prv",
+      "bytes": 64,
+      "sha256": "8376d55609349350b9ecdd74cdb7f2e35e5c87354aed1ad0fe23a7c7d692feb8",
+      "finding": "binary"
+    },
+    {
+      "path": "external/mbedtls/framework/data_files/lms_hash-sigs_sha256_m32_h5_lmots_sha256_n32_w8_pub",
+      "bytes": 60,
+      "sha256": "fc20ea62fbf827711c51f9763bbcedcccb6921390dd2f907f67507702215f870",
+      "finding": "binary"
+    },
+    {
+      "path": "external/mbedtls/framework/data_files/lms_hsslms_sha256_m32_h5_lmots_sha256_n32_w8_prv",
+      "bytes": 71932,
+      "sha256": "8690f0b5ced975f95c6f98bd7469f000f1d85eefab8be51da5bfb77fa231a33a",
+      "finding": "binary"
+    },
+    {
+      "path": "external/mbedtls/framework/data_files/lms_pyhsslms_sha256_m32_h5_lmots_sha256_n32_w8_prv",
+      "bytes": 68,
+      "sha256": "99d45a52e34e0220b0f63e2908b05dfc5f0e59e08a5e5555a3c59124ffdcb790",
+      "finding": "binary"
+    },
+    {
+      "path": "external/mbedtls/framework/data_files/lms_pyhsslms_sha256_m32_h5_lmots_sha256_n32_w8_pub",
+      "bytes": 60,
+      "sha256": "a32980fb474598844850e7feec7f8db460518400a45e066070961cd661a3bb01",
+      "finding": "binary"
+    },
+    {
+      "path": "external/mbedtls/programs/fuzz/corpuses/client",
+      "bytes": 4037,
+      "sha256": "9537a0f9876ce9600665c5f9f5a4e08ff1bdb4b28720d2bea357c25262a51d31",
+      "finding": "binary"
+    },
+    {
+      "path": "external/mbedtls/programs/fuzz/corpuses/dtlsclient",
+      "bytes": 4058,
+      "sha256": "d267adc8ccb63c5b057648f47a22cc1ac0974bbce9c5eda2cf1de5f784f739b0",
+      "finding": "binary"
+    },
+    {
+      "path": "external/mbedtls/programs/fuzz/corpuses/dtlsserver",
+      "bytes": 1189,
+      "sha256": "35173eb2995e2a2473c13703a8b833938d4bf0385d9b00b82ef44332c0fdc63b",
+      "finding": "binary"
+    },
+    {
+      "path": "external/mbedtls/programs/fuzz/corpuses/server",
+      "bytes": 675,
+      "sha256": "5ab7cce2bcdd5db1f4a67383ca1c3c3afb4d1f465641be8e046ab0c689bb8d32",
+      "finding": "binary"
+    },
+    {
+      "path": "external/openh264/autotest/performanceTest/ios/fruitstrap",
+      "bytes": 32972,
+      "sha256": "14e3be0f87834ee600eca48513d3bd9a61b8b21529bbd719c1f4cb509f914b3e",
+      "finding": "binary"
+    },
+    {
+      "path": "external/openh264/autotest/performanceTest/ios/iFileTransfer",
+      "bytes": 107472,
+      "sha256": "d4476a09dd7e89773a6dc092f1e5bb71600262f91fe7f8309a1129e3d7850c9a",
+      "finding": "binary"
+    },
+    {
+      "path": "external/openldap/libraries/liblutil/slapdmsg.bin",
+      "bytes": 116,
+      "sha256": "62f6f462a4ff2bdef45c3f78cd7b2c17ed580278188c14f7c2dec063723cecc9",
+      "finding": "binary"
+    },
+    {
+      "path": "external/xerces-c/tools/jars/stylebook-1.0-b2.jar",
+      "bytes": 57857,
+      "sha256": "e1b3b1094d55c89af7dbec26dc234bbc41f0da83a23398f0f09ae42d07592d23",
+      "finding": "JAR-\u0444\u0430\u0439\u043b Java"
+    },
+    {
+      "path": "external/xerces-c/tools/jars/xalan.jar",
+      "bytes": 424490,
+      "sha256": "348685e352640592110f5b810bae8ad948ba9214d8d522ea9cf81c1506622ced",
+      "finding": "JAR-\u0444\u0430\u0439\u043b Java"
+    },
+    {
+      "path": "external/xerces-c/tools/jars/xerces.jar",
+      "bytes": 787419,
+      "sha256": "41b8fe3c68ecfecdbdaaae9c4949480de5ee4e2ff5666dee876ea845a816962d",
+      "finding": "JAR-\u0444\u0430\u0439\u043b Java"
+    },
+    {
+      "path": "lime/tester/server/nodejs/package.json",
+      "bytes": 527,
+      "sha256": "296664b78446a7e9f24fd9ec0cba7d122b56b2eda6d6abdd3c8337a743fbea45",
+      "finding": "\u0444\u0430\u0439\u043b \u0437\u0430\u0432\u0438\u0441\u0438\u043c\u043e\u0441\u0442\u0435\u0439 \u0431\u0435\u0437 \u0431\u043b\u043e\u043a\u0438\u0440\u043e\u0432\u043a\u0438"
+    },
+    {
+      "path": "mediastreamer2/tester/raw/h265-iframe",
+      "bytes": 27068,
+      "sha256": "dfb6f935a65838bf12965b30effafcb5d21b2dbfcce3d0374ec2cef01fd21862",
+      "finding": "binary"
+    },
+    {
+      "path": "mediastreamer2/tester/raw/h265-parameter-sets-frame",
+      "bytes": 80,
+      "sha256": "cc1a2fb82fa0b597bcd4fa959961f8a4eee33bc8bd2830d7b2ac39af582a4e3e",
+      "finding": "binary"
+    },
+    {
+      "path": "mssilk/ios_bin/armv7/libSKP_SILK_SDK.a",
+      "bytes": 252336,
+      "sha256": "e331a18c569bbec1b4dad11c4cfa13d81288d4fe34c7b60c30d7990a77cec413",
+      "finding": "\u0441\u0442\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0430\u044f \u0431\u0438\u0431\u043b\u0438\u043e\u0442\u0435\u043a\u0430"
+    },
+    {
+      "path": "mswebrtc/webrtc/data/rtp_rtcp/H263Foreman_CIF_Iframe.bin",
+      "bytes": 14849,
+      "sha256": "d4fd0e5de5c0e2aebb3db26c3816fa78531fcb614f6d35e7d8a4ec730feb2e2d",
+      "finding": "binary"
+    },
+    {
+      "path": "mswebrtc/webrtc/data/rtp_rtcp/H263Foreman_CIF_Pframe.bin",
+      "bytes": 1406,
+      "sha256": "5b0536314225d5be4d4c195f0e6b425b86ce2987448306f5660bfff128c04795",
+      "finding": "binary"
+    },
+    {
+      "path": "mswebrtc/webrtc/data/rtp_rtcp/H263_CIF_IFRAME.bin",
+      "bytes": 14849,
+      "sha256": "d4fd0e5de5c0e2aebb3db26c3816fa78531fcb614f6d35e7d8a4ec730feb2e2d",
+      "finding": "binary"
+    },
+    {
+      "path": "mswebrtc/webrtc/data/rtp_rtcp/H263_CIF_PFRAME.bin",
+      "bytes": 3287,
+      "sha256": "18ddee766c797ccfc9ecf6ffc34906c0d289f62c67485a703ec1143b182ef94e",
+      "finding": "binary"
+    },
+    {
+      "path": "mswebrtc/webrtc/data/rtp_rtcp/H263_QCIF_IFRAME.bin",
+      "bytes": 2020,
+      "sha256": "3e57b04e4e142eb480bf70410c2149f830662f5c42eecf001447ffc4a13c32ca",
+      "finding": "binary"
+    },
+    {
+      "path": "mswebrtc/webrtc/data/rtp_rtcp/RTCPPacketTMMBR0.bin",
+      "bytes": 28,
+      "sha256": "6a84753514da483f806be62970ee7f00c50a1ca4f32d3f9b82d426daa0ced477",
+      "finding": "binary"
+    },
+    {
+      "path": "mswebrtc/webrtc/data/rtp_rtcp/RTCPPacketTMMBR1.bin",
+      "bytes": 28,
+      "sha256": "43fbbe6472d2aa1bbfc83b2010ab32fca7f45fbfb38e7b92828cf5315a63b597",
+      "finding": "binary"
+    },
+    {
+      "path": "mswebrtc/webrtc/data/rtp_rtcp/RTCPPacketTMMBR2.bin",
+      "bytes": 28,
+      "sha256": "cfe7dbbc7ab4e1520730af093aad0bfb61d1e73304d4f0b23daa36f37b77cc5d",
+      "finding": "binary"
+    },
+    {
+      "path": "mswebrtc/webrtc/data/rtp_rtcp/RTCPPacketTMMBR3.bin",
+      "bytes": 28,
+      "sha256": "84b0edec0ef19fbc1953801632065553418ff5dc762b53ebc8322467b88fb3eb",
+      "finding": "binary"
+    },
+    {
+      "path": "mswebrtc/webrtc/data/rtp_rtcp/RTCPPacketTMMBR4.bin",
+      "bytes": 28,
+      "sha256": "37c14e23a2085d943a8d8fa360400d12416156c7d18a9bdd3af94cb8bc29e870",
+      "finding": "binary"
+    },
+    {
+      "path": "mswebrtc/webrtc/data/rtp_rtcp/RTCPPacketTMMBR4_1.bin",
+      "bytes": 28,
+      "sha256": "28ffbff487fae2d91503e147e328ff2301f9d4ed7c85b4f70d49aa38c70d0a29",
+      "finding": "binary"
+    },
+    {
+      "path": "mswebrtc/webrtc/data/rtp_rtcp/RTCPPacketTMMBR4_2.bin",
+      "bytes": 28,
+      "sha256": "3e38d71c4a61fa66dfa6153fde63a71b4d684cf875274fcf62305408f7497297",
+      "finding": "binary"
+    },
+    {
+      "path": "mswebrtc/webrtc/data/rtp_rtcp/RTCPPacketTMMBR5.bin",
+      "bytes": 28,
+      "sha256": "cfb969f177e2ccf32f2f6b2e8ad4b43078efd1cbcb3d7b1eb2a1ccbc0fe4fdde",
+      "finding": "binary"
+    },
+    {
+      "path": "mswebrtc/webrtc/data/voice_engine/stereo_rtp_files/rtpplay.exe",
+      "bytes": 87040,
+      "sha256": "ce905e31dba6c5432d971159a4ffbeb916e0a4993d102439838295473089d08c",
+      "finding": "binary"
+    },
+    {
+      "path": "mswebrtc/webrtc/webrtc/examples/androidapp/third_party/autobanh/autobanh.jar",
+      "bytes": 45472,
+      "sha256": "daa694eff2c82b6e8314a16d1e2717ae5884c4c08b999d66e19973ce1a35a9a8",
+      "finding": "JAR-\u0444\u0430\u0439\u043b Java"
+    },
+    {
+      "path": "ortp/tester/raw/h265-iframe",
+      "bytes": 27068,
+      "sha256": "dfb6f935a65838bf12965b30effafcb5d21b2dbfcce3d0374ec2cef01fd21862",
+      "finding": "binary"
+    },
+    {
+      "path": "tester/Android/app/build.gradle",
+      "bytes": 3110,
+      "sha256": "db7119738eaed5339db9f1c0a28b488a611ae075aa6a0bf0493b8fb16f4f5c54",
+      "finding": "unknown maven repo 'https://gitlab.linphone.org/BC/public/maven_repository/raw/master'"
+    }
+  ],
+  "warningsNotRemoved": [
+    [
+      "\u0438\u0441\u043f\u043e\u043b\u043d\u044f\u0435\u043c\u044b\u0439 \u0431\u0438\u043d\u0430\u0440\u043d\u044b\u0439 \u0444\u0430\u0439\u043b, \u0432\u043e\u0437\u043c\u043e\u0436\u043d\u043e \u043a\u043e\u0434",
+      "mssilk/sdk/SILK_SDK_SRC_v1.0.9/SILK_SDK_SRC_FIX_v1.0.9/doc/SILK_SDK_API.pdf"
+    ],
+    [
+      "\u0438\u0441\u043f\u043e\u043b\u043d\u044f\u0435\u043c\u044b\u0439 \u0431\u0438\u043d\u0430\u0440\u043d\u044b\u0439 \u0444\u0430\u0439\u043b, \u0432\u043e\u0437\u043c\u043e\u0436\u043d\u043e \u043a\u043e\u0434",
+      "mssilk/sdk/SILK_SDK_SRC_v1.0.9/SILK_SDK_SRC_FIX_v1.0.9/doc/SILK_Evaluation.pdf"
+    ],
+    [
+      "\u0438\u0441\u043f\u043e\u043b\u043d\u044f\u0435\u043c\u044b\u0439 \u0431\u0438\u043d\u0430\u0440\u043d\u044b\u0439 \u0444\u0430\u0439\u043b, \u0432\u043e\u0437\u043c\u043e\u0436\u043d\u043e \u043a\u043e\u0434",
+      "mssilk/sdk/SILK_SDK_SRC_v1.0.9/SILK_SDK_SRC_FIX_v1.0.9/doc/SILK_RTP_PayloadFormat.pdf"
+    ],
+    [
+      "\u0438\u0441\u043f\u043e\u043b\u043d\u044f\u0435\u043c\u044b\u0439 \u0431\u0438\u043d\u0430\u0440\u043d\u044b\u0439 \u0444\u0430\u0439\u043b, \u0432\u043e\u0437\u043c\u043e\u0436\u043d\u043e \u043a\u043e\u0434",
+      "mssilk/sdk/SILK_SDK_SRC_v1.0.9/SILK_SDK_SRC_ARM_v1.0.9/doc/SILK_SDK_API.pdf"
+    ],
+    [
+      "\u0438\u0441\u043f\u043e\u043b\u043d\u044f\u0435\u043c\u044b\u0439 \u0431\u0438\u043d\u0430\u0440\u043d\u044b\u0439 \u0444\u0430\u0439\u043b, \u0432\u043e\u0437\u043c\u043e\u0436\u043d\u043e \u043a\u043e\u0434",
+      "mssilk/sdk/SILK_SDK_SRC_v1.0.9/SILK_SDK_SRC_ARM_v1.0.9/doc/SILK_Evaluation.pdf"
+    ],
+    [
+      "\u0438\u0441\u043f\u043e\u043b\u043d\u044f\u0435\u043c\u044b\u0439 \u0431\u0438\u043d\u0430\u0440\u043d\u044b\u0439 \u0444\u0430\u0439\u043b, \u0432\u043e\u0437\u043c\u043e\u0436\u043d\u043e \u043a\u043e\u0434",
+      "mssilk/sdk/SILK_SDK_SRC_v1.0.9/SILK_SDK_SRC_ARM_v1.0.9/doc/SILK_RTP_PayloadFormat.pdf"
+    ],
+    [
+      "\u0438\u0441\u043f\u043e\u043b\u043d\u044f\u0435\u043c\u044b\u0439 \u0431\u0438\u043d\u0430\u0440\u043d\u044b\u0439 \u0444\u0430\u0439\u043b, \u0432\u043e\u0437\u043c\u043e\u0436\u043d\u043e \u043a\u043e\u0434",
+      "mssilk/sdk/SILK_SDK_SRC_v1.0.9/SILK_SDK_SRC_MIPS_v1.0.9/doc/SILK_SDK_API.pdf"
+    ],
+    [
+      "\u0438\u0441\u043f\u043e\u043b\u043d\u044f\u0435\u043c\u044b\u0439 \u0431\u0438\u043d\u0430\u0440\u043d\u044b\u0439 \u0444\u0430\u0439\u043b, \u0432\u043e\u0437\u043c\u043e\u0436\u043d\u043e \u043a\u043e\u0434",
+      "mssilk/sdk/SILK_SDK_SRC_v1.0.9/SILK_SDK_SRC_MIPS_v1.0.9/doc/SILK_Evaluation.pdf"
+    ],
+    [
+      "\u0438\u0441\u043f\u043e\u043b\u043d\u044f\u0435\u043c\u044b\u0439 \u0431\u0438\u043d\u0430\u0440\u043d\u044b\u0439 \u0444\u0430\u0439\u043b, \u0432\u043e\u0437\u043c\u043e\u0436\u043d\u043e \u043a\u043e\u0434",
+      "mssilk/sdk/SILK_SDK_SRC_v1.0.9/SILK_SDK_SRC_MIPS_v1.0.9/doc/SILK_RTP_PayloadFormat.pdf"
+    ],
+    [
+      "\u0438\u0441\u043f\u043e\u043b\u043d\u044f\u0435\u043c\u044b\u0439 \u0431\u0438\u043d\u0430\u0440\u043d\u044b\u0439 \u0444\u0430\u0439\u043b, \u0432\u043e\u0437\u043c\u043e\u0436\u043d\u043e \u043a\u043e\u0434",
+      "mssilk/sdk/SILK_SDK_SRC_v1.0.9/SILK_SDK_SRC_FLP_v1.0.9/doc/SILK_SDK_API.pdf"
+    ],
+    [
+      "\u0438\u0441\u043f\u043e\u043b\u043d\u044f\u0435\u043c\u044b\u0439 \u0431\u0438\u043d\u0430\u0440\u043d\u044b\u0439 \u0444\u0430\u0439\u043b, \u0432\u043e\u0437\u043c\u043e\u0436\u043d\u043e \u043a\u043e\u0434",
+      "mssilk/sdk/SILK_SDK_SRC_v1.0.9/SILK_SDK_SRC_FLP_v1.0.9/doc/SILK_Evaluation.pdf"
+    ],
+    [
+      "\u0438\u0441\u043f\u043e\u043b\u043d\u044f\u0435\u043c\u044b\u0439 \u0431\u0438\u043d\u0430\u0440\u043d\u044b\u0439 \u0444\u0430\u0439\u043b, \u0432\u043e\u0437\u043c\u043e\u0436\u043d\u043e \u043a\u043e\u0434",
+      "mssilk/sdk/SILK_SDK_SRC_v1.0.9/SILK_SDK_SRC_FLP_v1.0.9/doc/SILK_RTP_PayloadFormat.pdf"
+    ],
+    [
+      "binary",
+      "belle-sip/tester/cpp-httplib/test/fuzzing/corpus/clusterfuzz-testcase-minimized-server_fuzzer-5372331946541056"
+    ],
+    [
+      "binary",
+      "belle-sip/tester/cpp-httplib/test/fuzzing/corpus/clusterfuzz-testcase-minimized-server_fuzzer-5942767436562432"
+    ],
+    [
+      "binary",
+      "belle-sip/tester/cpp-httplib/test/fuzzing/corpus/clusterfuzz-testcase-minimized-server_fuzzer-5667822731132928"
+    ],
+    [
+      "binary",
+      "belle-sip/tester/cpp-httplib/test/fuzzing/corpus/clusterfuzz-testcase-minimized-server_fuzzer-6508706672541696"
+    ],
+    [
+      "binary",
+      "belle-sip/tester/cpp-httplib/test/fuzzing/corpus/clusterfuzz-testcase-minimized-server_fuzzer-5386708825800704"
+    ],
+    [
+      "binary",
+      "belle-sip/tester/cpp-httplib/test/fuzzing/corpus/3"
+    ],
+    [
+      "binary",
+      "belle-sip/tester/cpp-httplib/test/fuzzing/corpus/clusterfuzz-testcase-minimized-server_fuzzer-6007379124158464"
+    ],
+    [
+      "binary",
+      "belle-sip/tester/cpp-httplib/test/fuzzing/corpus/clusterfuzz-testcase-minimized-server_fuzzer-5886572146327552"
+    ],
+    [
+      "binary",
+      "belle-sip/tester/cpp-httplib/test/fuzzing/corpus/clusterfuzz-testcase-minimized-server_fuzzer-5042094968537088"
+    ],
+    [
+      "binary",
+      "external/zxing-cpp/test/samples/datamatrix-3/dm-c.bin"
+    ],
+    [
+      "binary",
+      "external/zxing-cpp/test/samples/maxicode-1/mode4-mixed-ecis.bin"
+    ],
+    [
+      "binary",
+      "external/zxing-cpp/test/samples/pdf417-4/02.bin"
+    ],
+    [
+      "binary",
+      "external/zxing-cpp/test/samples/pdf417-4/01.bin"
+    ],
+    [
+      "binary",
+      "external/zxing-cpp/test/samples/aztec-1/mixed-ecis-41x41.bin"
+    ],
+    [
+      "binary",
+      "external/zxing-cpp/test/samples/pdf417-1/09.bin"
+    ],
+    [
+      "binary",
+      "external/zxing-cpp/test/samples/pdf417-2/24.bin"
+    ],
+    [
+      "\u0438\u0441\u043f\u043e\u043b\u043d\u044f\u0435\u043c\u044b\u0439 \u0431\u0438\u043d\u0430\u0440\u043d\u044b\u0439 \u0444\u0430\u0439\u043b, \u0432\u043e\u0437\u043c\u043e\u0436\u043d\u043e \u043a\u043e\u0434",
+      "external/codec2/win32/codec2.dll"
+    ]
+  ],
+  "requiresFreshSourceBuild": true
+}
