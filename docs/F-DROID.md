@@ -2,7 +2,16 @@
 
 ## Publication status
 
-EVDial is **not yet published in the official F-Droid repository**. This directory and `fdroid/metadata/ru.autonatoke.evdial.design.yml` contain packaging preparation for review. The build entry is deliberately disabled: a complete Linphone source build, F-Droid scans and redistribution licenses for the remaining EV raster artwork must be established before enabling it. A GitHub change or an APK on the EVDial website is not an official F-Droid release.
+EVDial is **not yet published in the official F-Droid repository**. This directory and `fdroid/metadata/ru.autonatoke.evdial.design.yml` contain packaging preparation for review. The build entry is deliberately disabled: execution of the complete recipe in F-Droid's official runner, redistribution licenses for the remaining EV raster artwork, device checks and maintainer review remain open. A GitHub change or an APK on the EVDial website is not an official F-Droid release.
+
+An isolated Linphone SDK source build has completed for all three target ABIs.
+The prepared application source scan passed with zero findings; the app then
+built against that AAR, passed 58 tests, and passed the final APK binary scan
+with zero problems. The
+[validation record](F-DROID-VALIDATION.md) identifies exact revisions, artifact
+hashes and the limits of these checks. The [supplemental full-SDK audit](F-DROID-SOURCE-SCAN.md)
+is separate from the ordinary application scan; its cleanup proposal has not
+been applied.
 
 The candidate application is `ru.autonatoke.evdial.design`, version code **21**, version name **0.3.3-rc7**. The removed 3 Rubina theme, logo and website shortcuts are absent. An old selected profile falls back to the existing EV preferences. The remaining profiles are EV, Light, Pearl and Minimal.
 
@@ -72,6 +81,12 @@ Do not sign an F-Droid candidate with the website's private key as a substitute 
 - The offline Open Charge Map subset includes source revision, modifications and CC BY 4.0 attribution in `src/main/assets/charging-license.txt`.
 - Candidate metadata is disabled and pins immutable packaging revision `a11262bb457db0c35d580789aaf5ee3ab312122c`. Automatic update checks remain disabled during packaging work.
 
-Before submitting an enabled recipe, run `fdroid lint`, the source scanner, the complete SDK/app build and APK permission/binary checks. Confirm the optional proprietary links' AntiFeatures with reviewers. Test SIM/SIP behavior on devices before relying on a new SDK build; do not represent source or UI tests as a physical-call test. Do not mark an unchecked requirement as passed.
+Before submitting an enabled recipe, validate the complete SDK/app recipe in
+F-Droid's runner, including dependency provisioning, and record its final APK
+checks and metadata lint. The isolated SDK/app build, source scan, tests and APK
+binary scan are already recorded separately.
+Confirm the optional proprietary links' AntiFeatures with reviewers. Test
+SIM/SIP behavior on devices before relying on a new SDK build; source or UI tests
+are not physical-call tests. Do not mark an unchecked requirement as passed.
 
 The official route is a metadata merge request in [fdroiddata](https://gitlab.com/fdroid/fdroiddata), or a [request for packaging](https://gitlab.com/fdroid/rfp). Submission requires a GitLab account. Maintainers review the source and build recipe, then their build/publish process makes the app available; preparation or submission alone does not establish publication. See the [official quick start](https://f-droid.org/en/docs/Submitting_to_F-Droid_Quick_Start_Guide/).

@@ -18,7 +18,7 @@ Repo: https://github.com/autonatoke-del/evdial.git
 Builds:
   - versionName: 0.3.3-rc7
     versionCode: 21
-    disable: Candidate only; full source build, scanner and asset-license audit are unverified
+    disable: Candidate only; official runner, asset-license audit and device checks are unverified
     commit: a11262bb457db0c35d580789aaf5ee3ab312122c
     sudo:
       - echo "deb https://deb.debian.org/debian bookworm main"
@@ -53,8 +53,9 @@ Builds:
 MaintainerNotes: |-
   DISABLED CANDIDATE. This file is preparation for review, not evidence that
   EVDial is accepted, built or published by F-Droid. The pinned packaging source
-  contains the tested RC7 application and tool-selection fixes; the full SDK
-  source build and artwork licence audit still gate enabling this recipe.
+  contains the tested RC7 application and tool-selection fixes. An isolated SDK
+  source build and normal application source scan passed; official-runner
+  validation, artwork licensing and device checks still gate this recipe.
 
   The SDK srclib already exists in fdroiddata and points to
   https://gitlab.linphone.org/BC/public/linphone-sdk.git. Tag 5.4.128 resolves to
@@ -72,13 +73,16 @@ MaintainerNotes: |-
   Python 3.9 or later is required by the packaging helpers.
   The helper defaults to offline; this candidate explicitly permits normal
   Maven dependency resolution while building in F-Droid's runner. Dependency
-  provisioning and SDK JCenter legacy repository resolution still need a full
-  build. Java 17 is installed explicitly from Debian bookworm because the
-  current F-Droid VM otherwise defaults to Java 21. The app daemon is pinned
+  provisioning and SDK JCenter legacy repository resolution still need
+  verification in F-Droid's official runner. Java 17 is installed explicitly
+  from Debian bookworm because the current F-Droid VM otherwise defaults to
+  Java 21. The app daemon is pinned
   via org.gradle.java.home, independently of the SDK's JAVA_HOME.
 
-  Full SDK/app builds, source and binary scans, local-AAR transitive dependency
-  verification, APK manifest checks and device SIP/SIM checks remain outstanding.
+  SDK source-build and application source-scan results are recorded in
+  docs/F-DROID-VALIDATION.md, alongside application integration, local-AAR
+  dependency and final APK checks. Official-runner and device SIP/SIM checks
+  remain outstanding.
   The source-built AAR's SHA256 and exact preparation/tool provenance are written
   only after a successful build. Remaining EV raster resources need copyright
   and redistribution-license documentation; the app code licence alone does
