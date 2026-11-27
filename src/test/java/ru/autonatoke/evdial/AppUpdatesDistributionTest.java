@@ -28,7 +28,7 @@ import org.robolectric.util.ReflectionHelpers;
 import static org.junit.Assert.*;
 import static org.robolectric.Shadows.shadowOf;
 
-/** Run once for the website build and once with -Pfdroid=true. */
+/** Run for website, -Pfdroid=true and -PgooglePlay=true distributions. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 34, qualifiers = "en-rUS", application = AppUpdatesDistributionTest.NoCallsPhone.class)
 @LooperMode(LooperMode.Mode.PAUSED)
@@ -57,11 +57,13 @@ public final class AppUpdatesDistributionTest {
             controller.create().start().resume().visible();
             shadowOf(Looper.getMainLooper()).idle();
             View root = activity.getWindow().getDecorView();
-            if (BuildConfig.FDROID_BUILD) {
-                assertTrue("Repository update action is visible", text(root, "Open F-Droid").isShown());
+            if (BuildConfig.FDROID_BUILD || BuildConfig.GOOGLE_PLAY_BUILD) {
+                String store = BuildConfig.GOOGLE_PLAY_BUILD ? "Google Play" : "F-Droid";
+                assertTrue("Store update action is visible", text(root, "Open " + store).isShown());
                 List<String> labels = labels(root);
-                assertTrue("Explains updating through the original repository",
-                        labels.stream().anyMatch(value -> value.contains("repository you installed it from")));
+                String guidance = BuildConfig.GOOGLE_PLAY_BUILD ? "updates through Google Play" : "repository you installed it from";
+                assertTrue("Explains the distribution's update route",
+                        labels.stream().anyMatch(value -> value.contains(guidance)));
                 assertTrue("Website download and install actions are absent", Collections.disjoint(labels,
                         Arrays.asList("Check for updates", "Download update", "Install update", "EVDial page ↗")));
             } else {
@@ -69,6 +71,7 @@ public final class AppUpdatesDistributionTest {
                 assertEquals("Download and install wait for a checked offer", Arrays.asList(View.GONE, View.GONE),
                         Arrays.asList(text(root, "Download update").getVisibility(), text(root, "Install update").getVisibility()));
                 assertNull("Website build does not redirect updates to F-Droid", text(root, "Open F-Droid"));
+                assertNull("Website build does not redirect updates to Google Play", text(root, "Open Google Play"));
             }
             assertNull("Opening updates makes no connection", ReflectionHelpers.getField(activity, "connection"));
         } finally {
@@ -85,17 +88,20 @@ public final class AppUpdatesDistributionTest {
         try {
             controller.create().start().resume().visible();
             AppUpdates.open(host);
-            if (BuildConfig.FDROID_BUILD) {
+            if (BuildConfig.FDROID_BUILD || BuildConfig.GOOGLE_PLAY_BUILD) {
                 dialog = ShadowDialog.getLatestDialog();
                 assertTrue("Repository guidance is shown", dialog instanceof StationSheet && dialog.isShowing());
                 assertNull("Opening guidance does not launch another app", shadowOf(host).getNextStartedActivity());
                 TextView open = ((StationSheet) dialog).getButton(DialogInterface.BUTTON_POSITIVE);
-                assertEquals("Open F-Droid", open.getText().toString());
+                assertEquals(BuildConfig.GOOGLE_PLAY_BUILD ? "Open Google Play" : "Open F-Droid", open.getText().toString());
                 open.performClick();
                 // No F-Droid client is installed in this sandbox. Robolectric only records this
                 // browser intent; it neither opens an external app nor performs a request.
                 Intent fallback = shadowOf(host).getNextStartedActivity();
-                assertEquals(Arrays.asList(Intent.ACTION_VIEW, "https://f-droid.org/"),
+                String url = BuildConfig.GOOGLE_PLAY_BUILD
+                        ? "https://play.google.com/store/apps/details?id=" + host.getPackageName()
+                        : "https://f-droid.org/";
+                assertEquals(Arrays.asList(Intent.ACTION_VIEW, url),
                         Arrays.asList(fallback.getAction(), fallback.getDataString()));
             } else {
                 Intent target = shadowOf(host).getNextStartedActivity();

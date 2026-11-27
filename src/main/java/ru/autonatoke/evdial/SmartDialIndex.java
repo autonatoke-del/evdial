@@ -32,10 +32,11 @@ final class SmartDialIndex {
         if (context.checkSelfPermission(Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
             readContacts(context, result, contactsByNumber);
         }
-        if (context.checkSelfPermission(Manifest.permission.READ_CALL_LOG) == PackageManager.PERMISSION_GRANTED) {
-            readSimCalls(context, result, contactsByNumber);
-        }
+        List<SmartDialSearch.Entry> simCalls = new ArrayList<>();
+        if (PhoneRole.canReadCallLog(context)) readSimCalls(context, simCalls, contactsByNumber);
         readSipCalls(context, result, contactsByNumber);
+        // A role or permission can change while a provider query is in progress.
+        if (PhoneRole.canReadCallLog(context)) result.addAll(simCalls);
         return result;
     }
 
@@ -84,6 +85,7 @@ final class SmartDialIndex {
 
     private static void readSimCalls(Context context, List<SmartDialSearch.Entry> result,
                                      Map<String, SmartDialSearch.Entry> contactsByNumber) {
+        if (!PhoneRole.canReadCallLog(context)) return;
         String[] columns = {
             CallLog.Calls.NUMBER, CallLog.Calls.DATE, CallLog.Calls.NUMBER_PRESENTATION,
             CallLog.Calls.CACHED_NAME
@@ -93,12 +95,13 @@ final class SmartDialIndex {
             if (cursor == null) return;
             int count = 0;
             while (cursor.moveToNext() && count++ < MAX_SIM_EVENTS) {
+                if (!PhoneRole.canReadCallLog(context)) { result.clear(); return; }
                 if (cursor.getInt(2) != CallLog.Calls.PRESENTATION_ALLOWED) continue;
                 addCall(cursor.getString(0), cursor.getString(3), cursor.getLong(1),
                         result, contactsByNumber);
             }
         } catch (RuntimeException permissionOrProviderUnavailable) {
-            // Never require default dialer role or additional permissions just for T9.
+            // SIM history is optional; contacts and app-owned SIP history remain available.
         }
     }
 

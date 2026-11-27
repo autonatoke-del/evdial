@@ -1,5 +1,7 @@
 plugins { id 'com.android.application' version '8.7.3' }
 def fdroidBuild = providers.gradleProperty('fdroid').orElse('false').get() == 'true'
+def googlePlayBuild = providers.gradleProperty('googlePlay').orElse('false').get() == 'true'
+if (fdroidBuild && googlePlayBuild) throw new GradleException('Choose one distribution: fdroid or googlePlay')
 def sourceBuiltLinphone = null
 if (fdroidBuild) {
  def aarPath = providers.gradleProperty('linphoneAar').orNull
@@ -12,19 +14,28 @@ if (fdroidBuild) {
 android {
  namespace 'ru.autonatoke.evdial'
  buildFeatures { buildConfig = true }
- compileSdk 35
+ compileSdk googlePlayBuild ? 36 : 35
  packaging { jniLibs { useLegacyPackaging = true } }
  buildToolsVersion '35.0.0'
  defaultConfig {
-  applicationId 'ru.autonatoke.evdial.design'; minSdk 26; targetSdk 33; versionCode 21; versionName '0.3.3-rc7'
+  applicationId 'ru.autonatoke.evdial.design'; minSdk 26; targetSdk 33
+  versionCode 21; versionName '0.3.3-rc7'
+  if (googlePlayBuild) { targetSdk 36; versionCode 22; versionName '0.3.3-rc8-play' }
   buildConfigField 'boolean', 'FDROID_BUILD', fdroidBuild.toString()
-  manifestPlaceholders = [phoneAppLabel: 'EVDial Design']
+  buildConfigField 'boolean', 'GOOGLE_PLAY_BUILD', googlePlayBuild.toString()
+  manifestPlaceholders = [phoneAppLabel: googlePlayBuild ? 'EVDial' : 'EVDial Design']
   ndk { abiFilters 'arm64-v8a','armeabi-v7a','x86_64' }
  }
  if (fdroidBuild) {
   sourceSets {
    debug.manifest.srcFile 'src/fdroid/AndroidManifest.xml'
    release.manifest.srcFile 'src/fdroid/AndroidManifest.xml'
+  }
+ }
+ if (googlePlayBuild) {
+  sourceSets {
+   debug.manifest.srcFile 'src/googlePlay/AndroidManifest.xml'
+   release.manifest.srcFile 'src/googlePlay/AndroidManifest.xml'
   }
  }
  testOptions {

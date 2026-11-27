@@ -1,11 +1,14 @@
 package ru.autonatoke.evdial;
+import android.Manifest;
 import android.app.Application;
+import android.content.pm.PackageManager;
 import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
 import android.os.Build;
 import android.content.*;
 import android.security.keystore.*;
 import android.util.Base64;
+import android.widget.Toast;
 import java.security.KeyStore;
 import javax.crypto.*;
 import javax.crypto.spec.GCMParameterSpec;
@@ -20,6 +23,11 @@ public class Phone extends Application {
  Runnable observer;
  String host, registration="Линия не подключена", phase="";
  private SharedPreferences prefs;
+ private CallService callService;
+ private Runnable pendingAudioStart;
+ private boolean callAudioRequested;
+ static final String MICROPHONE_REQUIRED="Для SIP-звонков нужен доступ к микрофону. Разрешите его и включите приём снова.";
+ static final String SERVICE_RESTRICTED="Android ограничил работу SIP в фоне. Откройте EVDial и включите приём снова.";
  public void onCreate(){
   super.onCreate();
   ScreenOrientation.register(this);
@@ -47,24 +55,7 @@ public class Phone extends Application {
     refresh();
    }
    public void onCallStateChanged(Core c,Call call,Call.State state,String message){
-    if(call.getDir()==Call.Dir.Incoming && incomingRinging(state)){
-     if(!listening()){call.decline(Reason.Busy);return;}
-     active=call;phase="Входящий · "+caller();
-     ringNotice.show(call,caller(),null);refresh();return;
-    }
-    // Linphone may release the previous call after a new incoming call starts.
-    if(active!=null && active!=call &&
-       (state==Call.State.End||state==Call.State.Error||state==Call.State.Released))return;
-    if(call.getDir()==Call.Dir.Incoming && active==null)return;
-    ringNotice.dismiss();
-    switch(state){
-     case End: case Error: case Released:
-      ringNotice.clear();
-      active=null; if(state!=Call.State.Released)phase=state==Call.State.Error?"Ошибка вызова · "+message:"Вызов завершён";
-      updateService();break;
-     default: active=call;
-      switch(state){case StreamsRunning:case Connected:phase="Идёт разговор";break;case OutgoingRinging:case OutgoingEarlyMedia:phase="Идут гудки";break;default:phase="Соединение…";}
-    } refresh();
+    callStateChanged(call,state,message);
    }
   });
   core.start();
@@ -74,12 +65,97 @@ public class Phone extends Application {
   }
   return core;
  }
+ void callStateChanged(Call call,Call.State state,String message){
+  if(call.getDir()==Call.Dir.Incoming && incomingRinging(state)){
+   if(!listening()){call.decline(Reason.Busy);return;}
+   active=call;phase="Входящий · "+caller();
+   ringNotice.show(call,caller(),null);updateService();refresh();return;
+  }
+  // End and Released can be separated by the next user action. In particular,
+  // an old Released must not clear a new audio request waiting for its Service.
+  if(active!=call&&(state==Call.State.End||state==Call.State.Error||state==Call.State.Released))return;
+  if(call.getDir()==Call.Dir.Incoming && active==null)return;
+  ringNotice.dismiss();
+  switch(state){
+   case End: case Error: case Released:
+    ringNotice.clear();
+    active=null;callAudioRequested=false;pendingAudioStart=null;
+    if(state!=Call.State.Released)phase=state==Call.State.Error?"Ошибка вызова · "+message:"Вызов завершён";
+    updateService();break;
+   default: active=call;
+    switch(state){case StreamsRunning:case Connected:phase="Идёт разговор";break;case OutgoingRinging:case OutgoingEarlyMedia:phase="Идут гудки";break;default:phase="Соединение…";}
+    updateService();
+  }refresh();
+ }
  boolean listening(){return prefs.getBoolean("incoming",false);}
  private static boolean incomingRinging(Call.State state){return state==Call.State.IncomingReceived||state==Call.State.IncomingEarlyMedia;}
  boolean ringing(){return active!=null&&incomingRinging(active.getState());}
  String caller(){String n=active==null?null:active.getRemoteAddress().getUsername();return n==null?"Неизвестный номер":n;}
- void setListening(boolean on){if(on)sipCore();prefs.edit().putBoolean("incoming",on).apply();updateService();refresh();}
- void updateService(){Intent i=new Intent(this,CallService.class);if(listening()||active!=null)startForegroundService(i);else stopService(i);}
+ void setListening(boolean on){
+  if(on&&!microphoneGranted()){pauseSipService(MICROPHONE_REQUIRED);return;}
+  if(on)sipCore();prefs.edit().putBoolean("incoming",on).apply();updateService();refresh();
+ }
+ boolean microphoneGranted(){return checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED;}
+ boolean serviceNeeded(){return listening()||active!=null||callAudioRequested;}
+ boolean microphoneServiceNeeded(){return callAudioRequested||(active!=null&&!ringing());}
+ void serviceCreated(CallService service){callService=service;}
+ void serviceStopped(CallService service){if(callService==service)callService=null;}
+ void updateService(){ensureCallService();}
+ private boolean ensureCallService(){
+  Intent intent=new Intent(this,CallService.class);
+  if(!serviceNeeded()){
+   if(callService!=null)callService.stopCallService();else stopService(intent);
+   return false;
+  }
+  if(!microphoneGranted()){pauseSipService(MICROPHONE_REQUIRED);return false;}
+  // A call-state callback can arrive while no Activity is visible. Refresh the
+  // existing service instead of trying to start another FGS from the background.
+  if(callService!=null)return callService.refreshForeground();
+  try{startForegroundService(intent);return true;}
+  catch(SecurityException|IllegalStateException restricted){
+   // Includes ForegroundServiceStartNotAllowedException on Android 12+.
+   pauseSipService(SERVICE_RESTRICTED);return false;
+  }
+ }
+ void pauseSipService(String message){
+  pendingAudioStart=null;callAudioRequested=false;
+  prefs.edit().putBoolean("incoming",false).apply();
+  Call interrupted=active;active=null;
+  ringNotice.clear();
+  if(core!=null)core.setMicEnabled(false);
+  if(interrupted!=null)try{interrupted.terminate();}catch(RuntimeException ignored){}
+  if(callService!=null)callService.stopCallService();else stopService(new Intent(this,CallService.class));
+  registration="Приём SIP приостановлен";phase=message;
+  Toast.makeText(this,message,Toast.LENGTH_LONG).show();refresh();
+ }
+ private boolean queueAudioStart(Runnable start){
+  if(!microphoneGranted()){pauseSipService(MICROPHONE_REQUIRED);return false;}
+  pendingAudioStart=start;callAudioRequested=true;
+  return ensureCallService();
+ }
+ // Called only after successful foreground promotion. Starting a Service is
+ // asynchronous; native capture must not precede its permission/type check.
+ void runPendingAudioStart(){
+  Runnable start=pendingAudioStart;
+  if(start==null)return;
+  pendingAudioStart=null;
+  if(!microphoneGranted()){pauseSipService(MICROPHONE_REQUIRED);return;}
+  try{start.run();}
+  catch(RuntimeException failed){
+   callAudioRequested=false;
+   if(core!=null&&(active==null||ringing()))core.setMicEnabled(false);
+   phase="Не удалось начать SIP-вызов";
+   Toast.makeText(this,phase,Toast.LENGTH_LONG).show();updateService();refresh();
+  }
+ }
+ int accept(Call target){
+  if(target==null||target!=active||!ringing())return -1;
+  return queueAudioStart(()->{
+   if(target!=active||!ringing()){callAudioRequested=false;updateService();return;}
+   sipCore().setMicEnabled(true);
+   if(target.accept()!=0){callAudioRequested=false;throw new IllegalStateException("SIP answer failed");}
+  })?0:-1;
+ }
  void updateSipProximity(){
   Call call=active;
   boolean atEar=false;
@@ -135,10 +211,15 @@ public class Phone extends Application {
  }
  boolean ready(){return account!=null&&account.getState()==RegistrationState.Ok;}
  void dial(String number){
-  if(!ready()||active!=null)return;
-  core.setMicEnabled(true); Address to=Factory.instance().createAddress("sip:"+number+"@"+host);
+  // A second tap must not replace a number already waiting for FGS promotion.
+  if(!ready()||active!=null||pendingAudioStart!=null||callAudioRequested)return;
+  if(!microphoneGranted())throw new IllegalStateException(MICROPHONE_REQUIRED);
+  Address to=Factory.instance().createAddress("sip:"+number+"@"+host);
   if(to==null)throw new IllegalArgumentException("Проверьте номер");
-  startForegroundService(new Intent(this,CallService.class));
-  Call call=core.inviteAddress(to);if(call==null){stopService(new Intent(this,CallService.class));throw new IllegalStateException("Не удалось начать вызов");}
+  if(!queueAudioStart(()->{
+   if(active!=null){callAudioRequested=false;updateService();return;}
+   core.setMicEnabled(true);
+   if(core.inviteAddress(to)==null)throw new IllegalStateException("SIP invite failed");
+  }))throw new IllegalStateException(SERVICE_RESTRICTED);
  }
 }

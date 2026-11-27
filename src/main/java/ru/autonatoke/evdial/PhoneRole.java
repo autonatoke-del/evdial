@@ -1,9 +1,14 @@
 package ru.autonatoke.evdial;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.role.RoleManager;
 import android.content.ActivityNotFoundException;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.provider.Settings;
 import android.telecom.TelecomManager;
@@ -12,12 +17,28 @@ import android.widget.Toast;
 final class PhoneRole {
     private PhoneRole() {}
 
-    static boolean held(Activity activity) {
-     TelecomManager t=activity.getSystemService(TelecomManager.class);
-     boolean selected=t!=null&&activity.getPackageName().equals(t.getDefaultDialerPackage());
+    static boolean held(Context context) {
+     TelecomManager t=context.getSystemService(TelecomManager.class);
+     boolean selected=t!=null&&context.getPackageName().equals(t.getDefaultDialerPackage());
      if(Build.VERSION.SDK_INT<29)return selected;
-     RoleManager r=activity.getSystemService(RoleManager.class);
+     RoleManager r=context.getSystemService(RoleManager.class);
      return selected||(r!=null&&r.isRoleAvailable(RoleManager.ROLE_DIALER)&&r.isRoleHeld(RoleManager.ROLE_DIALER));
+    }
+
+    static boolean canReadCallLog(Context context) {
+        return held(context) && context.checkSelfPermission(Manifest.permission.READ_CALL_LOG)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    static BroadcastReceiver watch(Context context, Runnable changed) {
+        BroadcastReceiver receiver = new BroadcastReceiver() {
+            @Override public void onReceive(Context ignored, Intent intent) {
+                if (TelecomManager.ACTION_DEFAULT_DIALER_CHANGED.equals(intent.getAction())) changed.run();
+            }
+        };
+        // This protected system broadcast also reaches a resumed activity in multi-window mode.
+        context.registerReceiver(receiver, new IntentFilter(TelecomManager.ACTION_DEFAULT_DIALER_CHANGED));
+        return receiver;
     }
     static void request(Activity activity, int requestCode, int settingsCode) {
         try {

@@ -9,6 +9,7 @@ JAVA = ROOT/"src/main/java/ru/autonatoke/evdial"
 dial = (JAVA/"Dialer.java").read_text(encoding="utf-8")
 matcher = (JAVA/"SmartDialSearch.java").read_text(encoding="utf-8")
 index = (JAVA/"SmartDialIndex.java").read_text(encoding="utf-8")
+phone_role = (JAVA/"PhoneRole.java").read_text(encoding="utf-8")
 manifest = (ROOT/"src/main/AndroidManifest.xml").read_text(encoding="utf-8")
 build = (ROOT/"build.gradle").read_text(encoding="utf-8")
 
@@ -40,7 +41,8 @@ checks = {
         and "READ_SMS" not in manifest,
     "local_only": "getContentResolver().query(" in index and "HttpURLConnection" not in index,
     "permission_respecting": "checkSelfPermission(Manifest.permission.READ_CONTACTS)" in index
-        and "checkSelfPermission(Manifest.permission.READ_CALL_LOG)" in index,
+        and "PhoneRole.canReadCallLog(context)" in index
+        and "held(context) && context.checkSelfPermission(Manifest.permission.READ_CALL_LOG)" in phone_role,
     "sip_history_read": "SipHistory.read(context)" in index,
     "do_not_show_hidden_caller": "CallLog.Calls.PRESENTATION_ALLOWED" in index,
     "cached_contact_name": "contactsByNumber.get(" in index,

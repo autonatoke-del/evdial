@@ -4,11 +4,14 @@ import android.content.Intent;
 import android.app.Dialog;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Insets;
 import android.graphics.Rect;
+import android.os.Build;
 import android.os.Looper;
 import android.text.Layout;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -40,7 +43,7 @@ import static org.robolectric.Shadows.shadowOf;
 
 /** Exercises the real dialer, text watcher, asynchronous search and keypad listeners. */
 @RunWith(ParameterizedRobolectricTestRunner.class)
-@Config(sdk = 34, application = DialerTypingLayoutTest.NoCallsPhone.class)
+@Config(sdk = {34, 35}, application = DialerTypingLayoutTest.NoCallsPhone.class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @LooperMode(LooperMode.Mode.PAUSED)
 public final class DialerTypingLayoutTest {
@@ -69,7 +72,9 @@ public final class DialerTypingLayoutTest {
     private final float fontScale;
     private final String theme;
     private Dialer activity;
-    private View decor, appRoot;
+    private View decor, content, appRoot;
+    private WindowInsets playWindowInsets;
+    private int safeTop, safeBottom;
     private ScrollView scroll;
     private ExecutorService worker;
     private Bitmap bitmap;
@@ -121,7 +126,22 @@ public final class DialerTypingLayoutTest {
             assertEquals(fontScale, activity.getResources().getConfiguration().fontScale, .001f);
             assertEquals(widthDp, activity.getResources().getConfiguration().screenWidthDp);
             decor = activity.getWindow().getDecorView();
+            content = activity.findViewById(android.R.id.content);
             appRoot = activity.findViewById(android.R.id.custom);
+            if (BuildConfig.GOOGLE_PLAY_BUILD && Build.VERSION.SDK_INT >= 35) {
+                // A 32dp notch overlaps the 24dp status bar. Exercise both three-button
+                // (48dp) and gesture (24dp) navigation with the existing viewport cases.
+                safeTop = dp(32);
+                safeBottom = dp(widthDp < 393 ? 48 : 24);
+                playWindowInsets = new WindowInsets.Builder()
+                        .setInsets(WindowInsets.Type.statusBars(), Insets.of(0, dp(24), 0, 0))
+                        .setVisible(WindowInsets.Type.statusBars(), true)
+                        .setInsets(WindowInsets.Type.navigationBars(), Insets.of(0, 0, 0, safeBottom))
+                        .setVisible(WindowInsets.Type.navigationBars(), true)
+                        .setInsets(WindowInsets.Type.displayCutout(), Insets.of(0, safeTop, 0, 0))
+                        .setVisible(WindowInsets.Type.displayCutout(), true)
+                        .build();
+            }
             scroll = firstScrollView(appRoot);
             worker = ReflectionHelpers.getField(activity, "smartWorker");
             bitmap = Bitmap.createBitmap(dp(widthDp), dp(heightDp), Bitmap.Config.ARGB_8888);
@@ -503,12 +523,24 @@ public final class DialerTypingLayoutTest {
         int width = View.MeasureSpec.makeMeasureSpec(dp(widthDp), View.MeasureSpec.EXACTLY);
         int height = View.MeasureSpec.makeMeasureSpec(dp(heightDp), View.MeasureSpec.EXACTLY);
         for (int pass = 0; pass < 3; pass++) {
+            // Dispatch into the production content listener, never install a test listener
+            // or shrink the outer window: the safe area must be deducted exactly once.
+            if (playWindowInsets != null) content.dispatchApplyWindowInsets(playWindowInsets);
             decor.measure(width, height);
             decor.layout(0, 0, dp(widthDp), dp(heightDp));
             decor.getViewTreeObserver().dispatchOnPreDraw();
             // Text/cursor geometry settles on every pass; one real draw is sufficient.
             if (pass == 2) decor.draw(new Canvas(bitmap));
             shadowOf(Looper.getMainLooper()).idle();
+        }
+        if (playWindowInsets != null) {
+            assertEquals("Fixture keeps the complete edge-to-edge window width", dp(widthDp), content.getWidth());
+            assertEquals("Fixture keeps the complete edge-to-edge window height", dp(heightDp), content.getHeight());
+            assertEquals("The real lifecycle-installed listener protects the notch", safeTop, content.getPaddingTop());
+            assertEquals("The real listener protects navigation exactly once", safeBottom, content.getPaddingBottom());
+            Rect container = bounds(content), viewport = bounds(appRoot);
+            assertEquals(container.top + safeTop, viewport.top);
+            assertEquals(container.bottom - safeBottom, viewport.bottom);
         }
     }
 
@@ -520,7 +552,7 @@ public final class DialerTypingLayoutTest {
         String directory = System.getProperty("evdial.previewDir");
         if (directory == null || directory.isEmpty()) return;
         File file = new File(directory, "dialer-responsive-" + widthDp + "x" + heightDp
-                + "-" + (enlarged ? "large" : "normal") + ".webp");
+                + "-" + (enlarged ? "large" : "normal") + "-api" + Build.VERSION.SDK_INT + ".webp");
         assertTrue(file.getParentFile().isDirectory() || file.getParentFile().mkdirs());
         int width = Math.min(320, bitmap.getWidth());
         int height = Math.round(bitmap.getHeight() * width / (float) bitmap.getWidth());
