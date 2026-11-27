@@ -2,13 +2,22 @@
 
 ## Publication status
 
-EVDial is **not yet published in the official F-Droid repository**. This directory and `fdroid/metadata/ru.autonatoke.evdial.design.yml` contain packaging preparation for review. The build entry is deliberately disabled: execution of the complete recipe in F-Droid's official runner, redistribution licenses for the remaining EV raster artwork, device checks and maintainer review remain open. A GitHub change or an APK on the EVDial website is not an official F-Droid release.
+EVDial is **not yet published in the official F-Droid repository**. This directory
+and `fdroid/metadata/ru.autonatoke.evdial.design.yml` contain packaging preparation
+for review. The build entry remains disabled pending packaging review and
+verification of the complete recipe for F-Droid's official build. A GitHub change
+or an APK on the EVDial website is not an official F-Droid release.
+
+The project owner confirmed on 27 November 2026 (Moscow time) that the 15 bundled
+EV raster assets were generated for EVDial. Their exact hashes and the project's
+AGPL-3.0-only distribution scope, to the extent copyright applies, are recorded
+in the [artwork inventory](F-DROID-ARTWORK.md). This records the owner's
+confirmation; it is not an independent legal audit.
 
 An isolated Linphone SDK source build has completed for all three target ABIs.
 The prepared application source scan passed with zero findings; the app then
 built against that AAR, passed 58 tests, and passed the final APK binary scan
-with zero problems. The
-[validation record](F-DROID-VALIDATION.md) identifies exact revisions, artifact
+with zero problems. The [validation record](F-DROID-VALIDATION.md) identifies exact revisions, artifact
 hashes and the limits of these checks. The [supplemental full-SDK audit](F-DROID-SOURCE-SCAN.md)
 is separate from the ordinary application scan; its cleanup proposal has not
 been applied.
@@ -77,16 +86,19 @@ Do not sign an F-Droid candidate with the website's private key as a substitute 
 - [Validation record](F-DROID-VALIDATION.md) and [submission draft](../fdroid/SUBMISSION.md).
 - English and Russian text under `fastlane/metadata/android/`, including changelog 21.
 - Listing icon rendered from the existing Android vector by `tools/render_listing_icon.py`.
-- [Remaining artwork inventory](F-DROID-ARTWORK.md); original code's AGPL license does not document those raster assets' provenance.
+- [Owner-confirmed artwork provenance and license scope](F-DROID-ARTWORK.md), with exact hashes for all 15 project-generated raster assets.
 - The offline Open Charge Map subset includes source revision, modifications and CC BY 4.0 attribution in `src/main/assets/charging-license.txt`.
 - Candidate metadata is disabled and pins immutable packaging revision `a11262bb457db0c35d580789aaf5ee3ab312122c`. Automatic update checks remain disabled during packaging work.
 
-Before submitting an enabled recipe, validate the complete SDK/app recipe in
-F-Droid's runner, including dependency provisioning, and record its final APK
-checks and metadata lint. The isolated SDK/app build, source scan, tests and APK
-binary scan are already recorded separately.
-Confirm the optional proprietary links' AntiFeatures with reviewers. Test
-SIM/SIP behavior on devices before relying on a new SDK build; source or UI tests
-are not physical-call tests. Do not mark an unchecked requirement as passed.
+The prepared source-build, scan and artwork records can accompany a request for
+packaging review. The complete recipe and dependency provisioning still need
+verification for F-Droid's official build, and reviewers need to confirm the
+optional proprietary links' AntiFeatures and the release/update configuration.
+These review and build steps remain separate from filing the request.
+
+Physical SIM/SIP checks, including Xiaomi/Samsung behavior, remain follow-up
+quality work before relying on the new SDK build. They are not presented as a
+prerequisite to request packaging review. Source or UI tests are not
+physical-call tests, and no unchecked requirement is marked as passed.
 
 The official route is a metadata merge request in [fdroiddata](https://gitlab.com/fdroid/fdroiddata), or a [request for packaging](https://gitlab.com/fdroid/rfp). Submission requires a GitLab account. Maintainers review the source and build recipe, then their build/publish process makes the app available; preparation or submission alone does not establish publication. See the [official quick start](https://f-droid.org/en/docs/Submitting_to_F-Droid_Quick_Start_Guide/).

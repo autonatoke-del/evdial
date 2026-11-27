@@ -27,6 +27,14 @@ English and Russian Fastlane metadata and an icon rendered from the application'
 
 Original EVDial code is licensed AGPL-3.0-only. The offline station data includes its Open Charge Map CC BY 4.0 attribution and exact source revision. The 3 Rubina theme, logo and links have been removed at the owner's request.
 
+On 27 November 2026 (Moscow time), the project owner confirmed that the 15 bundled
+EV raster assets were generated specifically for EVDial. The project distributes
+those exact assets under its existing AGPL-3.0-only license to the extent
+copyright applies. Their hashes and the owner's confirmation are recorded in
+[the artwork inventory](https://github.com/autonatoke-del/evdial/blob/main/docs/F-DROID-ARTWORK.md). This statement records
+provenance and distribution scope; it does not assert an independent legal
+audit, a particular generator or model, prompts, or an original creation date.
+
 The optional F-Droid build mode requires a local Linphone AAR, removes the website APK-install permission/provider, and delegates updates to the repository client. It never falls back to the Linphone binary Maven repository. Its preparation helper removes that unused repository declaration before scanning.
 
 Linphone SDK 5.4.128 is pinned to `ce38159e55897c695b7095019b5a1ff612bb181f`, with recursive submodules. The helper applies the Firebase cleanup used by F-Droid's Linphone recipe and the upstream minimal audio flags, then records source/build provenance. A local-AAR dependency must include Commons Compress and AndroidX annotation explicitly; those are declared.
@@ -52,7 +60,7 @@ libraries for each of `arm64-v8a`, `armeabi-v7a` and `x86_64`.
 The prepared application source at `a11262bb457db0c35d580789aaf5ee3ab312122c`
 passed fdroidserver 2.4.6 source scanning with zero findings, warnings or
 informational removals and no scanner exclusions. A
-[separate full-SDK audit](../docs/F-DROID-SOURCE-SCAN.md) records findings in
+[separate full-SDK audit](https://github.com/autonatoke-del/evdial/blob/main/docs/F-DROID-SOURCE-SCAN.md) records findings in
 upstream fixtures and tools; it is not an official rejection or proof that those
 files are proprietary or shipped in EVDial. Its cleanup proposal is unapplied.
 
@@ -68,16 +76,21 @@ report contains neither Firebase nor a Maven Linphone dependency. Debug and
 release permission/service/provider sets match the prior F-Droid boundary;
 there is no APK-install permission or provider, and the F-Droid client query is
 present. This is isolated integration evidence, not an official runner or
-publication result. The exact metadata, including its updated disabled-status
-wording, also passed fdroidserver 2.4.6 lint; hashes and dependency details are in
-the validation record.
+publication result. Metadata lint also passed for the exact historical revision
+identified in the validation record. The later artwork-confirmation update only
+changes status wording; its recipe commands and pins remain unchanged. Hashes
+and dependency details are in the validation record.
 
-The candidate F-Droid build entry remains disabled. Remaining gates are documented openly:
+The candidate F-Droid build entry remains disabled. Pending review and
+publication work is documented openly:
 
 - Validate the complete recipe and dependency provisioning in F-Droid's official runner, including its resulting APK checks; isolated source-SDK/app builds and source/binary scans have passed.
-- Establish source/rightsholder and redistribution licenses for the remaining EV raster images listed in `docs/F-DROID-ARTWORK.md`; the code license alone is not presented as evidence for those assets.
-- Verify SIM/SIP behavior on physical devices with the source-built SDK, including the Xiaomi/Samsung layout cases.
 - Review AntiFeatures for optional proprietary web search, maps, messaging shortcuts and DIAGNOST AI. The candidate declares NonFreeNet; messaging promotion may also warrant NonFreeAdd.
 - Confirm release/update tracking and the final enabled build recipe after those gates pass.
+
+These items can be addressed during packaging review; completion of an official
+runner build is not claimed as a prerequisite for opening this request. Physical
+SIM/SIP checks with the source-built SDK, including Xiaomi/Samsung layout cases,
+remain follow-up quality work and are not presented as an RFP filing requirement.
 
 We are not claiming full inclusion compliance, reproducibility, acceptance or publication at this stage. This request is for packaging review and a path to completing the remaining requirements; the existing website APK is not offered as a substitute for F-Droid's build.

@@ -18,7 +18,7 @@ Repo: https://github.com/autonatoke-del/evdial.git
 Builds:
   - versionName: 0.3.3-rc7
     versionCode: 21
-    disable: Candidate only; official runner, asset-license audit and device checks are unverified
+    disable: Candidate only; packaging review and official F-Droid build are pending
     commit: a11262bb457db0c35d580789aaf5ee3ab312122c
     sudo:
       - echo "deb https://deb.debian.org/debian bookworm main"
@@ -53,9 +53,9 @@ Builds:
 MaintainerNotes: |-
   DISABLED CANDIDATE. This file is preparation for review, not evidence that
   EVDial is accepted, built or published by F-Droid. The pinned packaging source
-  contains the tested RC7 application and tool-selection fixes. An isolated SDK
-  source build and normal application source scan passed; official-runner
-  validation, artwork licensing and device checks still gate this recipe.
+  contains the tested RC7 application and tool-selection fixes. Isolated SDK/app
+  source builds and source/binary scans passed. The recipe remains disabled
+  pending packaging review and verification for the official F-Droid build.
 
   The SDK srclib already exists in fdroiddata and points to
   https://gitlab.linphone.org/BC/public/linphone-sdk.git. Tag 5.4.128 resolves to
@@ -81,12 +81,17 @@ MaintainerNotes: |-
 
   SDK source-build and application source-scan results are recorded in
   docs/F-DROID-VALIDATION.md, alongside application integration, local-AAR
-  dependency and final APK checks. Official-runner and device SIP/SIM checks
-  remain outstanding.
+  dependency and final APK checks. Official-runner verification remains
+  outstanding. Physical-device SIP/SIM checks are follow-up quality work, not
+  a prerequisite for opening a packaging-review request.
   The source-built AAR's SHA256 and exact preparation/tool provenance are written
-  only after a successful build. Remaining EV raster resources need copyright
-  and redistribution-license documentation; the app code licence alone does
-  not settle them. See docs/F-DROID-ARTWORK.md. The charging dataset already
+  only after a successful build. On 27 November 2026 (Moscow time), the owner
+  confirmed the 15 EV raster assets were generated for EVDial. The project
+  distributes those exact assets under AGPL-3.0-only to the extent copyright
+  applies. The later owner/license statement and exact hashes at
+  https://github.com/autonatoke-del/evdial/blob/main/docs/F-DROID-ARTWORK.md
+  apply to the identical asset hashes in this pinned source. This records
+  provenance, not an independent legal audit. The charging dataset
   includes its Open Charge Map CC BY 4.0 attribution in charging-license.txt.
   Local-AAR dependencies include commons-compress and AndroidX annotation
   explicitly. Optional proprietary services are declared as NonFreeNet;
