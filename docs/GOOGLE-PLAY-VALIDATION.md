@@ -51,7 +51,9 @@ These results establish artifact structure. **No physical device, real SIM/SIP c
 
 ## Website-mode regression
 
-The separate website-mode regression result will be recorded after its completion. The already published website RC7 remains a separate release.
+The same tested source also passed `assembleRelease`, `lintRelease` and all **100 Android/Robolectric tests** with `-PgooglePlay=false`, Java 17, Gradle 8.13, AGP 8.7.3 and the installed API 35 SDK. There were no test failures, errors or skips. The manifest retained website version **21 / 0.3.3-rc7**, target API 33, its APK-install permission and update FileProvider; the Play-only `specialUse` overlay was absent.
+
+The unsigned website-mode validation APK is **24,153,988 bytes**, SHA-256 `80f1f8678dc02ccde93decf28f4fc302216c7fe33b0ac2e9fc66f3c6690d8b4d`. It was produced for regression verification and was not signed or deployed. The published website RC7 continues to be identified by its existing release receipt in [F-DROID-VALIDATION.md](F-DROID-VALIDATION.md).
 
 ## Published privacy page
 
